@@ -215,6 +215,7 @@
             const formKey = state.activeForm;
             const form = state[formKey];
             const derived = ADOM.Calculations.deriveForm(state, formKey);
+            const healthDerived = ADOM.Calculations.deriveForm(state, "human");
 
             this.elements.appShell.dataset.form = formKey;
             this.applyFormTheme(state.settings.formColors[formKey], state.settings.formBackgrounds[formKey]);
@@ -226,7 +227,7 @@
             this.renderTemporalAspects(state.profile.temporalAspects);
             this.renderDrama(state.drama);
             this.renderMilestones(state.profile.milestones);
-            this.renderHealth(form, derived);
+            this.renderHealth(state.human, healthDerived);
             this.renderCombat(form, state.human.weapons, derived);
             this.renderDistortion(state.distortion, derived);
             this.renderArcane(formKey, form, derived);
@@ -256,6 +257,7 @@
             const formKey = state.activeForm;
             const form = state[formKey];
             const derived = ADOM.Calculations.deriveForm(state, formKey);
+            const healthDerived = ADOM.Calculations.deriveForm(state, "human");
 
             this.elements.attributesTotal.textContent = derived.attributesTotal;
             this.elements.skillsTotal.textContent = derived.skillsTotal;
@@ -268,8 +270,8 @@
                 initiative: derived.initiative,
                 rangedDamage: derived.rangedDamage,
                 meleeDamage: derived.meleeDamage,
-                woundThreshold: derived.woundThreshold,
-                totalResistance: derived.totalResistance,
+                woundThreshold: healthDerived.woundThreshold,
+                totalResistance: healthDerived.totalResistance,
                 ecstasyExit: derived.ecstasyExit
             };
 
@@ -704,8 +706,6 @@
             this.elements.milestonesNote.textContent = `${fixedItems.filter(item => String(item).trim()).length}/6`;
             this.elements.milestonesList.innerHTML = fixedItems.map((item, index) => `
                 <div class="fixed-row">
-                    <span class="fixed-row-number">${index + 1}</span>
-                    <!--<input type="text" value="${escapeHtml(item)}" placeholder="Hito ${index + 1}" data-action="milestone" data-index="${index}">-->
                     <input type="text" value="${escapeHtml(item)}" data-action="milestone" data-index="${index}">
                 </div>
             `).join("");
@@ -739,7 +739,7 @@
                     <label for="rdInput">RD</label>
                     <input id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
                 </div>
-                <div class="weapon-table-header"><span>Arma / ataque</span><span class="weapon-damage-heading">Daño <span class="damage-formula-help" tabindex="0" role="img" aria-label="m: dado menor; c: dado central; M: dado mayor" data-tooltip="m = dado menor · c = dado central · M = dado mayor">?</span></span><span>Tipo</span><span></span><span></span></div>
+                <div class="weapon-table-header"><span>Arma / ataque</span><span class="weapon-damage-heading">Daño <span class="damage-formula-help" tabindex="0" aria-label="Ayuda sobre los dados de daño">?<span class="damage-formula-tooltip" role="tooltip"><span><b>m</b>Dado menor</span><span><b>c</b>Dado central</span><span><b>M</b>Dado mayor</span></span></span></span><span>Tipo</span><span></span><span></span></div>
                 ${weapons.map((weapon, index) => `
                     <div class="weapon-row">
                         <input type="text" value="${escapeHtml(weapon.name)}" placeholder="Nombre" data-action="weapon-name" data-index="${index}">
@@ -783,9 +783,11 @@
             this.elements.arcaneTotal.textContent = derived.arcaneTotal;
             this.elements.arcaneSkillsList.innerHTML = (form.arcaneSkills || []).map((item, index) => `
                 <div class="arcane-row">
-                    <input type="text" value="${escapeHtml(item.name)}" placeholder="Habilidad arcana" data-action="arcane-name" data-index="${index}">
+                    <input type="text" value="${escapeHtml(item.name)}" placeholder="${index === 0 ? "Habilidad innata" : "Habilidad arcana"}" data-action="arcane-name" data-index="${index}">
                     <input type="number" min="0" step="1" value="${item.value}" data-action="arcane-value" data-index="${index}">
-                    <button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar habilidad arcana" data-action="remove-arcane" data-index="${index}">×</button>
+                    ${index === 0
+                        ? ""
+                        : `<button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar habilidad arcana" data-action="remove-arcane" data-index="${index}">×</button>`}
                 </div>
             `).join("");
             this.bindDynamicContainer(this.elements.arcaneSkillsList);
@@ -908,9 +910,18 @@
                     case "temporal": state.profile.temporalAspects[index] = value; break;
                     case "skill-talent": form.skills[index].talents[Number(target.dataset.talentIndex)] = value; break;
                     case "milestone": state.profile.milestones[index] = value; break;
-                    case "current-resistance": form.health.currentResistance = value; break;
-                    case "light-wound-description": form.health.lightWoundDescription = value; break;
-                    case "severe-wound-description": form.health.severeWoundDescription = value; break;
+                    case "current-resistance":
+                        state.human.health.currentResistance = value;
+                        state.ecstasy.health.currentResistance = value;
+                        break;
+                    case "light-wound-description":
+                        state.human.health.lightWoundDescription = value;
+                        state.ecstasy.health.lightWoundDescription = value;
+                        break;
+                    case "severe-wound-description":
+                        state.human.health.severeWoundDescription = value;
+                        state.ecstasy.health.severeWoundDescription = value;
+                        break;
                     case "rd": form.rd = value; break;
                     case "weapon-name": weapons[index].name = value; break;
                     case "weapon-damage": weapons[index].damage = value; break;
@@ -946,8 +957,14 @@
                 const form = state[state.activeForm];
                 switch (action) {
                     case "drama": updateCumulativeTrack(state.drama, index, target.checked); break;
-                    case "light-wound": form.health.lightWounds[index] = target.checked; break;
-                    case "severe-wound": form.health.severeWounds[index] = target.checked; break;
+                    case "light-wound":
+                        state.human.health.lightWounds[index] = target.checked;
+                        state.ecstasy.health.lightWounds[index] = target.checked;
+                        break;
+                    case "severe-wound":
+                        state.human.health.severeWounds[index] = target.checked;
+                        state.ecstasy.health.severeWounds[index] = target.checked;
+                        break;
                     case "ecstasy-track": updateCumulativeTrack(state.distortion.ecstasyTrack, index, target.checked); break;
                     case "bond-anchor":
                         if (state.activeForm === "ecstasy") return;
@@ -991,6 +1008,14 @@
             if (action === "remove-weapon") {
                 const weapon = this.store.getState().human.weapons[index];
                 if (!global.confirm(`¿Seguro que quieres eliminar el arma${weapon?.name?.trim() ? ` «${weapon.name.trim()}»` : ""}?`)) return;
+            }
+            if (action === "remove-arcane") {
+                if (index === 0) {
+                    this.showToast("La habilidad arcana innata no se puede eliminar.", "info");
+                    return;
+                }
+                const arcaneSkill = this.store.getState().ecstasy.arcaneSkills[index];
+                if (!global.confirm(`¿Seguro que quieres eliminar la habilidad arcana${arcaneSkill?.name?.trim() ? ` «${arcaneSkill.name.trim()}»` : ""}?`)) return;
             }
 
             this.store.update(state => {

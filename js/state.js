@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 16,
+            schemaVersion: 18,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -150,7 +150,7 @@
             bond.level = 1;
             bond.anchor = false;
         });
-        state.ecstasy.arcaneSkills = [];
+        state.ecstasy.arcaneSkills = [{ name: "", value: 1 }];
 
         return state;
     }
@@ -210,6 +210,15 @@
         })) : [];
     }
 
+    function normalizeArcaneSkills(value, fallback) {
+        const source = Array.isArray(value) ? value : fallback;
+        const items = source.map(item => ({
+            name: String(item?.name ?? ""),
+            value: normalizeNonNegativeNumber(item?.value, 0)
+        }));
+        return items.length ? items : [{ name: "", value: 1 }];
+    }
+
     function mergeForm(defaultForm, incomingForm) {
         const form = incomingForm && typeof incomingForm === "object" ? incomingForm : {};
         const incomingBonds = Array.isArray(form.bonds) ? form.bonds : [];
@@ -255,10 +264,7 @@
                 };
             }),
             ...(Object.prototype.hasOwnProperty.call(defaultForm, "arcaneSkills") ? {
-                arcaneSkills: Array.isArray(form.arcaneSkills) ? form.arcaneSkills.map(item => ({
-                    name: String(item?.name ?? ""),
-                    value: normalizeNonNegativeNumber(item?.value, 0)
-                })) : clone(defaultForm.arcaneSkills)
+                arcaneSkills: normalizeArcaneSkills(form.arcaneSkills, defaultForm.arcaneSkills)
             } : {})
         };
     }
@@ -302,6 +308,9 @@
         ));
         human.extraExperience = sharedExtraExperience;
         ecstasy.extraExperience = sharedExtraExperience;
+        const sharedHealth = clone(activeForm === "ecstasy" ? ecstasy.health : human.health);
+        human.health = clone(sharedHealth);
+        ecstasy.health = clone(sharedHealth);
         delete human.drama;
         delete ecstasy.drama;
         if (normalizeNumber(candidate.schemaVersion, 0) < 12) {
@@ -313,7 +322,7 @@
         }
 
         return {
-            schemaVersion: 16,
+            schemaVersion: 18,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,

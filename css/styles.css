@@ -853,40 +853,80 @@ input[type="checkbox"] {
     position: relative;
     display: inline-grid;
     place-items: center;
-    width: 16px;
-    height: 16px;
-    flex: 0 0 16px;
-    border: 1px solid currentColor;
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    border: 0;
     border-radius: 50%;
+    color: var(--accent-strong);
+    background: rgba(var(--accent-rgb), 0.1);
     cursor: help;
-    font-size: 0.65rem;
+    font-size: 0.61rem;
+    font-weight: 900;
     line-height: 1;
+    transition: color var(--transition), background var(--transition), transform var(--transition);
 }
 
-.damage-formula-help::after {
-    content: attr(data-tooltip);
+.damage-formula-help:hover,
+.damage-formula-help:focus-visible {
+    color: #fff;
+    background: var(--accent);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.damage-formula-tooltip {
     position: absolute;
     z-index: 10;
-    top: calc(100% + 7px);
+    top: calc(100% + 9px);
     left: 50%;
-    width: max-content;
-    max-width: 230px;
-    padding: 7px 9px;
-    border-radius: 7px;
-    color: #fff;
-    background: var(--ink);
-    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.18);
-    font-size: 0.69rem;
-    font-weight: 650;
-    line-height: 1.35;
+    display: grid;
+    width: 142px;
+    padding: 7px 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    background: #fff;
+    box-shadow: 0 9px 24px rgba(44, 37, 48, 0.16);
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1.25;
+    text-align: left;
     opacity: 0;
     pointer-events: none;
     transform: translate(-50%, -3px);
     transition: opacity var(--transition), transform var(--transition);
 }
 
-.damage-formula-help:hover::after,
-.damage-formula-help:focus-visible::after {
+.damage-formula-tooltip::before {
+    content: "";
+    position: absolute;
+    top: -5px;
+    left: calc(50% - 5px);
+    width: 9px;
+    height: 9px;
+    border-top: 1px solid var(--line);
+    border-left: 1px solid var(--line);
+    background: #fff;
+    transform: rotate(45deg);
+}
+
+.damage-formula-tooltip > span {
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr);
+    align-items: center;
+    gap: 4px;
+    padding: 3px 2px;
+}
+
+.damage-formula-tooltip b {
+    color: var(--accent-strong);
+    font-size: 0.72rem;
+    text-align: center;
+}
+
+.damage-formula-help:hover .damage-formula-tooltip,
+.damage-formula-help:focus-visible .damage-formula-tooltip {
     opacity: 1;
     transform: translate(-50%, 0);
 }
@@ -906,14 +946,17 @@ input[type="checkbox"] {
 }
 
 .distortion-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 7px;
     margin-top: 10px;
 }
 
 .distortion-grid .track-check {
-    width: 100%;
+    width: auto;
+    min-width: 24px;
+    max-width: 32px;
+    flex: 1 1 24px;
 }
 
 .distortion-caption {
@@ -985,6 +1028,10 @@ input[type="checkbox"] {
     gap: 12px;
     min-height: 34px;
     border-bottom: 1px solid rgba(var(--accent-rgb), 0.13);
+}
+
+.summary-list > div:last-child {
+    border-bottom: 0;
 }
 
 .summary-list dt,
@@ -1343,8 +1390,7 @@ input[type="checkbox"] {
 /* Filas fijas */
 .fixed-row {
     display: grid;
-    grid-template-columns: 24px minmax(0, 1fr);
-    gap: 4px;
+    grid-template-columns: minmax(0, 1fr);
     align-items: center;
 }
 
@@ -1354,17 +1400,6 @@ input[type="checkbox"] {
     padding: 4px 5px;
     font-size: 0.74rem;
 }
-.fixed-row-number {
-    display: grid;
-    place-items: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    background: var(--soft-accent);
-    font-weight: 800;
-    font-size: 0.7rem;
-}
-
 /* Lazos: 8 filas humanas; éxtasis refleja únicamente el ancla humana. */
 .bond-table-header,
 .bond-row {

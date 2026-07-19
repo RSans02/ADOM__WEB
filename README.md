@@ -89,12 +89,14 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Los atributos y las habilidades se reordenan mediante asas de seis puntos y transiciones animadas. En los atributos aparece a la izquierda de su código; en las habilidades, bajo la flecha curva y a la izquierda del primer talento.
 - Los hitos son exactamente seis y no se pueden eliminar.
 - El campo manual de Experiencia admite `-1` como valor mínimo y se comparte entre las formas humana y de éxtasis.
+- El panel completo de Salud es compartido entre ambas formas; el umbral y la resistencia total usan los atributos de la forma humana.
 - Los lazos son exactamente ocho y no se pueden eliminar.
 - Los encabezados de Hitos y Lazos humanos muestran cuántas filas están rellenadas respecto al total disponible.
 - Cada forma permite marcar un único lazo como ancla.
 - Las habilidades sin talento tiran `/roll {3d10dh1}kh1+MODIFICADOR`; al usar un talento cambian a `/roll {3d10dh1}kh2+MODIFICADOR` para sumar tambiÃ©n el dado pequeÃ±o.
 - Antes de una tirada de habilidad, la ficha pide el atributo, permite elegir uno de los talentos de la habilidad y ofrece un modificador extra temporal que empieza siempre en 0.
 - En las tiradas de armas y ataques se elige primero el atributo y después la habilidad.
+- La primera habilidad arcana es siempre la innata y no se puede eliminar.
 - Las tiradas de atributo conservan el dado base interno existente.
 
 - Los lazos vacíos no suman experiencia.
