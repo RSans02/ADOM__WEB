@@ -86,7 +86,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Cada habilidad incluye dos espacios fijos para talentos.
 - La pista de Drama es compartida entre la forma humana y la forma de éxtasis.
 - Drama y Éxtasis funcionan como pistas acumulativas: marcar rellena hasta la casilla elegida y desmarcar vacía desde esa casilla en adelante.
-- Los atributos y las habilidades pueden reordenarse de forma independiente en cada forma mediante sus controles de subir y bajar.
+- Los atributos pueden reordenarse con sus controles de subir y bajar. Las habilidades usan un asa de seis puntos, situada bajo la flecha curva y a la izquierda del primer talento, para arrastrarlas con una transición animada.
 - Los hitos son exactamente seis y no se pueden eliminar.
 - Los lazos son exactamente ocho y no se pueden eliminar.
 - Los encabezados de Hitos y Lazos humanos muestran cuántas filas están rellenadas respecto al total disponible.

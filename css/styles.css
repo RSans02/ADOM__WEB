@@ -526,6 +526,7 @@ input[type="checkbox"] {
     color: var(--accent-strong);
     font-size: 0.78rem;
     font-weight: 900;
+    padding-left: 6px;
 }
 
 .stat-row input {
@@ -641,6 +642,68 @@ input[type="checkbox"] {
 .reorder-button:disabled:hover {
     color: var(--muted);
     background: none;
+}
+
+.skill-drag-handle {
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    color: var(--muted);
+    background: none;
+    cursor: grab;
+    transform-origin: left center;
+    transition: color var(--transition), background var(--transition), transform var(--transition);
+}
+
+.skill-drag-handle:hover,
+.skill-drag-handle:focus-visible {
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    outline: none;
+    transform: scale(1.08);
+}
+
+.skill-drag-handle:active {
+    cursor: grabbing;
+}
+
+.drag-grip-icon {
+    width: 14px;
+    height: 16px;
+    fill: currentColor;
+}
+
+.skill-block {
+    position: relative;
+    border-radius: 8px;
+}
+
+.skill-block.is-dragging {
+    z-index: 2;
+    opacity: 0.42;
+    outline: 2px dashed var(--accent);
+    outline-offset: -2px;
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+.skill-block.skill-drop-settle {
+    animation: skill-drop-settle 360ms cubic-bezier(.2,.8,.2,1);
+}
+
+@keyframes skill-drop-settle {
+    0% {
+        background: rgba(var(--accent-rgb), 0.22);
+        transform: scale(0.985);
+    }
+    65% { transform: scale(1.008); }
+    100% {
+        background: transparent;
+        transform: scale(1);
+    }
 }
 
 .card-inline {
@@ -1159,7 +1222,10 @@ input[type="checkbox"] {
     border-bottom: 1px solid var(--line);
     padding: 0.35rem 0;
 }
-.skill-main-row { border-bottom: 0; }
+.skill-main-row {
+    grid-template-columns: 42px minmax(0, 1fr) 48px 32px;
+    border-bottom: 0;
+}
 .skill-name {
     display: flex;
     align-items: center;
@@ -1173,10 +1239,10 @@ input[type="checkbox"] {
 }
 .skill-talents {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 41px repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: center;
-    padding: 0 0.15rem 0.35rem var(--skill-input-offset);
+    padding: 0 0.15rem 0.35rem 0;
 }
 .skill-talents input {
     min-width: 0;
@@ -1400,9 +1466,10 @@ input[type="checkbox"] {
 
 @media (max-width: 620px) {
     .skill-talents {
-        grid-template-columns: 1fr;
-        padding-left: 2.55rem;
+        grid-template-columns: 41px minmax(0, 1fr);
+        padding-left: 0;
     }
+    .skill-talents input:last-child { grid-column: 2; }
     .bond-table-header,
     .bond-row {
         grid-template-columns: 42px minmax(125px, 1fr) 52px 46px 46px 46px;
@@ -1471,6 +1538,15 @@ input[type="checkbox"] {
 
 .app-shell[data-viewer="true"] .reorder-controls {
     display: none;
+}
+
+.app-shell[data-viewer="true"] .skill-drag-handle {
+    display: none;
+}
+
+.app-shell[data-viewer="true"] .skill-talents {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding-left: var(--skill-input-offset);
 }
 
 .app-shell[data-viewer="true"] .stat-row {

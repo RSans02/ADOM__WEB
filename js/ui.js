@@ -24,6 +24,14 @@
         </svg>`;
     }
 
+    function dragGripIcon() {
+        return `<svg class="drag-grip-icon" viewBox="0 0 16 18" aria-hidden="true" focusable="false">
+            <circle cx="4" cy="3" r="1.6"></circle><circle cx="12" cy="3" r="1.6"></circle>
+            <circle cx="4" cy="9" r="1.6"></circle><circle cx="12" cy="9" r="1.6"></circle>
+            <circle cx="4" cy="15" r="1.6"></circle><circle cx="12" cy="15" r="1.6"></circle>
+        </svg>`;
+    }
+
     function orderControls(kind, index, length, label) {
         const safeLabel = escapeHtml(label);
         return `<span class="reorder-controls" aria-label="Reordenar ${safeLabel}">
@@ -61,6 +69,8 @@
             this.bridge = bridge;
             this.portraitDrag = null;
             this.portraitEditing = false;
+            this.skillDrag = null;
+            this.skillDropIndex = null;
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -572,21 +582,101 @@
         renderSkills(form, derived) {
             this.elements.skillsTotal.textContent = derived.skillsTotal;
             this.elements.skillsList.innerHTML = form.skills.map((skill, index) => `
-                <div class="skill-block">
+                <div class="skill-block${this.skillDropIndex === index ? " skill-drop-settle" : ""}" data-skill-block>
                     <div class="stat-row skill-main-row">
                         <span class="stat-code">↳</span>
                         <span class="skill-name">${escapeHtml(skill.label)}</span>
                         <input class="stat-value" type="number" min="0" step="1" value="${skill.value}" aria-label="Valor de ${escapeHtml(skill.label)}" data-action="skill-value" data-index="${index}">
                         <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">${diceIcon()}</button>
-                        ${orderControls("skill", index, form.skills.length, skill.label)}
                     </div>
                     <div class="skill-talents" aria-label="Talentos de ${escapeHtml(skill.label)}">
+                        <button class="skill-drag-handle" type="button" draggable="true" data-skill-drag-handle data-index="${index}" title="Arrastrar para reordenar" aria-label="Arrastrar ${escapeHtml(skill.label)} para reordenar">${dragGripIcon()}</button>
                         <input type="text" value="${escapeHtml(skill.talents?.[0] ?? "")}" placeholder="Talento 1" data-action="skill-talent" data-index="${index}" data-talent-index="0">
                         <input type="text" value="${escapeHtml(skill.talents?.[1] ?? "")}" placeholder="Talento 2" data-action="skill-talent" data-index="${index}" data-talent-index="1">
                     </div>
                 </div>
             `).join("");
+            this.skillDropIndex = null;
             this.bindDynamicContainer(this.elements.skillsList);
+            this.bindSkillDragAndDrop();
+        }
+
+        bindSkillDragAndDrop() {
+            const container = this.elements.skillsList;
+            container.ondragstart = event => this.handleSkillDragStart(event);
+            container.ondragover = event => this.handleSkillDragOver(event);
+            container.ondrop = event => this.handleSkillDrop(event);
+            container.ondragend = () => this.handleSkillDragEnd();
+        }
+
+        handleSkillDragStart(event) {
+            const handle = event.target.closest("[data-skill-drag-handle]");
+            if (!handle || this.viewerMode) {
+                event.preventDefault();
+                return;
+            }
+            const block = handle.closest("[data-skill-block]");
+            this.skillDrag = { block, fromIndex: Number(handle.dataset.index) };
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("text/plain", String(handle.dataset.index));
+            event.dataTransfer.setDragImage(block, 24, 20);
+            global.requestAnimationFrame(() => block.classList.add("is-dragging"));
+        }
+
+        handleSkillDragOver(event) {
+            if (!this.skillDrag) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = "move";
+            const target = event.target.closest("[data-skill-block]");
+            const { block } = this.skillDrag;
+            if (!target || target === block) return;
+
+            const container = this.elements.skillsList;
+            const targetRect = target.getBoundingClientRect();
+            const reference = event.clientY < targetRect.top + targetRect.height / 2
+                ? target
+                : target.nextElementSibling;
+            if (reference === block || reference === block.nextElementSibling) return;
+
+            const positions = new Map(
+                [...container.querySelectorAll("[data-skill-block]")]
+                    .filter(item => item !== block)
+                    .map(item => [item, item.getBoundingClientRect().top])
+            );
+            container.insertBefore(block, reference);
+            positions.forEach((previousTop, item) => {
+                const offset = previousTop - item.getBoundingClientRect().top;
+                if (!offset) return;
+                item.getAnimations().forEach(animation => animation.cancel());
+                item.animate(
+                    [{ transform: `translateY(${offset}px)` }, { transform: "translateY(0)" }],
+                    { duration: 220, easing: "cubic-bezier(.2,.8,.2,1)" }
+                );
+            });
+        }
+
+        handleSkillDrop(event) {
+            if (!this.skillDrag) return;
+            event.preventDefault();
+            const { block, fromIndex } = this.skillDrag;
+            const toIndex = [...this.elements.skillsList.querySelectorAll("[data-skill-block]")].indexOf(block);
+            this.skillDrag = null;
+            if (toIndex < 0 || toIndex === fromIndex) {
+                block.classList.remove("is-dragging");
+                return;
+            }
+            this.skillDropIndex = toIndex;
+            this.store.update(state => {
+                const skills = state[state.activeForm].skills;
+                const [movedSkill] = skills.splice(fromIndex, 1);
+                skills.splice(toIndex, 0, movedSkill);
+            }, { source: "drag-reorder-skill" });
+        }
+
+        handleSkillDragEnd() {
+            if (!this.skillDrag) return;
+            this.skillDrag = null;
+            this.render();
         }
 
         renderTemporalAspects(items) {
