@@ -2,7 +2,9 @@
     "use strict";
 
     const ADOM = global.ADOM = global.ADOM || {};
-    const STORAGE_KEY = "adom.external.sheet.character.v1";
+    const LEGACY_STORAGE_KEY = "adom.external.sheet.character.v1";
+    const STORAGE_KEY = "adom.external.sheet.characters.v2";
+    const COLLECTION_SCHEMA_VERSION = 1;
 
     const ATTRIBUTE_TEMPLATE = [
         { key: "strength", code: "FOR", descriptor: "Sílfide", value: 2 },
@@ -420,26 +422,117 @@
         constructor(options) {
             super();
             this.persistenceEnabled = options?.persistenceEnabled !== false;
-            this.state = options?.initialState ? normalizeState(options.initialState) : this.load();
+            this.collection = options?.initialState
+                ? this.createCollection(normalizeState(options.initialState))
+                : this.load();
+            this.state = this.getActiveEntry().state;
             this.saveTimer = null;
+        }
+
+        createCharacterId() {
+            if (typeof global.crypto?.randomUUID === "function") return global.crypto.randomUUID();
+            return `character-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        }
+
+        createCollection(initialState) {
+            const id = this.createCharacterId();
+            return {
+                schemaVersion: COLLECTION_SCHEMA_VERSION,
+                activeCharacterId: id,
+                characters: [{ id, state: initialState }]
+            };
+        }
+
+        normalizeCollection(candidate) {
+            if (!candidate || typeof candidate !== "object" || !Array.isArray(candidate.characters)) return null;
+            const usedIds = new Set();
+            const characters = candidate.characters.map(entry => {
+                let id = String(entry?.id || "").trim();
+                if (!id || usedIds.has(id)) id = this.createCharacterId();
+                usedIds.add(id);
+                return { id, state: normalizeState(entry?.state) };
+            });
+            if (!characters.length) return null;
+            const requestedId = String(candidate.activeCharacterId || "");
+            return {
+                schemaVersion: COLLECTION_SCHEMA_VERSION,
+                activeCharacterId: characters.some(entry => entry.id === requestedId) ? requestedId : characters[0].id,
+                characters
+            };
         }
 
         load() {
             try {
                 const raw = global.localStorage.getItem(STORAGE_KEY);
-                return raw ? normalizeState(JSON.parse(raw)) : createEmptyState();
+                const collection = raw ? this.normalizeCollection(JSON.parse(raw)) : null;
+                if (collection) return collection;
+
+                const legacyRaw = global.localStorage.getItem(LEGACY_STORAGE_KEY);
+                return this.createCollection(legacyRaw ? normalizeState(JSON.parse(legacyRaw)) : createEmptyState());
             } catch (error) {
-                console.warn("[ADOM] No se pudo cargar el personaje guardado.", error);
-                return createEmptyState();
+                console.warn("[ADOM] No se pudieron cargar los personajes guardados.", error);
+                return this.createCollection(createEmptyState());
             }
+        }
+
+        getActiveEntry() {
+            return this.collection.characters.find(entry => entry.id === this.collection.activeCharacterId)
+                || this.collection.characters[0];
         }
 
         getState() {
             return this.state;
         }
 
+        getActiveCharacterId() {
+            return this.collection.activeCharacterId;
+        }
+
+        getCharacters() {
+            return this.collection.characters.map(entry => ({
+                id: entry.id,
+                name: String(entry.state.profile?.name || "").trim()
+            }));
+        }
+
+        switchCharacter(id) {
+            const entry = this.collection.characters.find(character => character.id === id);
+            if (!entry || entry.id === this.collection.activeCharacterId) return false;
+            this.collection.activeCharacterId = entry.id;
+            this.state = entry.state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-switch" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        createCharacter() {
+            const entry = { id: this.createCharacterId(), state: createEmptyState() };
+            this.collection.characters.push(entry);
+            this.collection.activeCharacterId = entry.id;
+            this.state = entry.state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-create" } }));
+            this.scheduleSave();
+            return entry.id;
+        }
+
+        deleteCharacter(id) {
+            if (this.collection.characters.length <= 1) return false;
+            const index = this.collection.characters.findIndex(entry => entry.id === id);
+            if (index < 0) return false;
+            this.collection.characters.splice(index, 1);
+            if (this.collection.activeCharacterId === id) {
+                const nextEntry = this.collection.characters[Math.min(index, this.collection.characters.length - 1)];
+                this.collection.activeCharacterId = nextEntry.id;
+                this.state = nextEntry.state;
+            }
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-delete" } }));
+            this.scheduleSave();
+            return true;
+        }
+
         replace(nextState, options) {
             this.state = normalizeState(nextState);
+            this.getActiveEntry().state = this.state;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: options?.source || "replace" } }));
             this.scheduleSave();
         }
@@ -460,7 +553,7 @@
         save() {
             if (!this.persistenceEnabled) return;
             try {
-                global.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+                global.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.collection));
                 this.dispatchEvent(new CustomEvent("save-state", { detail: { state: "saved" } }));
             } catch (error) {
                 console.error("[ADOM] No se pudo guardar el personaje.", error);
@@ -470,6 +563,7 @@
 
         reset() {
             this.state = createEmptyState();
+            this.getActiveEntry().state = this.state;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "reset" } }));
             this.save();
         }
@@ -486,6 +580,7 @@
 
     ADOM.State = Object.freeze({
         STORAGE_KEY,
+        LEGACY_STORAGE_KEY,
         createDefaultState,
         createEmptyState,
         normalizeState,

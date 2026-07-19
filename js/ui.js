@@ -80,7 +80,7 @@
 
         collectElements() {
             const ids = [
-                "appShell", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "resetButton",
+                "appShell", "characterManager", "characterSelector", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
@@ -100,6 +100,12 @@
             });
             this.elements.humanTab.addEventListener("click", () => this.setActiveForm("human"));
             this.elements.ecstasyTab.addEventListener("click", () => this.setActiveForm("ecstasy"));
+            this.elements.characterSelector.addEventListener("change", event => {
+                this.portraitEditing = false;
+                this.store.switchCharacter(event.target.value);
+            });
+            this.elements.newCharacterButton.addEventListener("click", () => this.createCharacter());
+            this.elements.deleteCharacterButton.addEventListener("click", () => this.deleteCharacter());
 
             this.bindTextInput(this.elements.characterName, state => state.profile.name, (state, value) => { state.profile.name = value; });
             this.elements.portraitPreviewWrap.addEventListener("dblclick", event => {
@@ -201,6 +207,7 @@
             this.elements.exportButton.addEventListener("click", () => this.exportCharacter());
             this.elements.shareButton.addEventListener("click", () => this.shareCharacter());
             this.elements.importInput.addEventListener("change", event => this.importCharacter(event));
+            this.elements.excelImportInput.addEventListener("change", event => this.importExcelCharacter(event));
             this.elements.resetButton.addEventListener("click", () => this.resetCharacter());
         }
 
@@ -224,6 +231,7 @@
 
             this.elements.appShell.dataset.form = formKey;
             this.applyFormTheme(state.settings.formColors[formKey], state.settings.formBackgrounds[formKey]);
+            this.renderCharacterSelector();
             this.renderTabs(formKey);
             this.renderCharacterPortrait(state.profile);
             this.syncStaticFields(state, form);
@@ -264,6 +272,7 @@
             const derived = ADOM.Calculations.deriveForm(state, formKey);
             const healthDerived = ADOM.Calculations.deriveForm(state, "human");
 
+            this.renderCharacterSelector();
             this.elements.attributesTotal.textContent = derived.attributesTotal;
             this.elements.skillsTotal.textContent = derived.skillsTotal;
             if (formKey === "ecstasy") {
@@ -303,6 +312,39 @@
             this.elements.humanTab.setAttribute("aria-selected", String(humanActive));
             this.elements.ecstasyTab.classList.toggle("is-active", !humanActive);
             this.elements.ecstasyTab.setAttribute("aria-selected", String(!humanActive));
+        }
+
+        renderCharacterSelector() {
+            const characters = this.store.getCharacters();
+            const activeId = this.store.getActiveCharacterId();
+            const fragment = document.createDocumentFragment();
+            characters.forEach((character, index) => {
+                const option = document.createElement("option");
+                option.value = character.id;
+                option.textContent = character.name || `Personaje sin nombre ${index + 1}`;
+                option.selected = character.id === activeId;
+                fragment.appendChild(option);
+            });
+            this.elements.characterSelector.replaceChildren(fragment);
+            this.elements.characterSelector.title = this.elements.characterSelector.selectedOptions[0]?.textContent || "";
+            this.elements.deleteCharacterButton.disabled = this.viewerMode || characters.length <= 1;
+        }
+
+        createCharacter() {
+            if (this.viewerMode) return;
+            this.portraitEditing = false;
+            this.store.createCharacter();
+            this.showToast("Personaje nuevo creado.", "success");
+            this.elements.characterName.focus();
+        }
+
+        deleteCharacter() {
+            if (this.viewerMode || this.store.getCharacters().length <= 1) return;
+            const name = String(this.store.getState().profile.name || "").trim() || "este personaje sin nombre";
+            if (!global.confirm(`¿Quieres eliminar a ${name}? Esta acción no se puede deshacer.`)) return;
+            this.portraitEditing = false;
+            this.store.deleteCharacter(this.store.getActiveCharacterId());
+            this.showToast("Personaje eliminado.", "success");
         }
 
         syncStaticFields(state, form) {
@@ -1326,6 +1368,21 @@
             };
             reader.onerror = () => this.showToast("No se pudo leer el archivo seleccionado.", "error");
             reader.readAsText(file);
+        }
+
+        async importExcelCharacter(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const importedState = await ADOM.Excel.importCharacter(file);
+                this.portraitEditing = false;
+                this.store.replace(importedState, { source: "excel-import" });
+                this.showToast("Personaje importado desde Excel correctamente.", "success");
+            } catch (error) {
+                this.showToast(`No se pudo importar el Excel: ${error.message}`, "error");
+            } finally {
+                event.target.value = "";
+            }
         }
 
         confirmReset() {
