@@ -17,7 +17,7 @@
             initialState: sharedState,
             persistenceEnabled: !viewerMode
         });
-        const bridge = new global.ADOM.Roll20.Roll20Bridge({ timeoutMs: 8000 });
+        const bridge = new global.ADOM.Roll20.Roll20Bridge({ timeoutMs: 18000 });
         const ui = new global.ADOM.UI.SheetUI(store, bridge);
         ui.render();
         if (viewerMode) ui.enableViewerMode();

@@ -20,14 +20,16 @@ La ficha utiliza el protocolo ya validado:
 
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
-- Tipo de mensaje: `CHAT_COMMAND`
-- Versión del protocolo: `1`
+- Tipos de mensaje: `CHAT_COMMAND` y `DAMAGE_ROLL`
+- Versión del protocolo: `2`
 
 El userscript debe incluir:
 
 ```javascript
 // @match        file:///C:/ADOM__WEB/*
 ```
+
+Instala o sustituye el userscript por `tampermonkey/adom-roll20-bridge.user.js`. No mantengas simultáneamente la versión antigua, porque ambos scripts podrían duplicar los comandos de chat.
 
 ## Funciones incluidas
 
@@ -55,13 +57,13 @@ El userscript debe incluir:
 
 ## Tiradas
 
-Los botones de atributo y habilidad usan provisionalmente:
+Las habilidades usan:
 
 ```text
-/roll <dado base>+<valor>
+{3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-El dado base es editable en el panel de Roll20 y comienza en `1d20`. Esta fórmula se ha dejado configurable porque el Excel no define el procedimiento exacto de tirada de ADOM.
+Los atributos conservan internamente el dado base existente. Para el daño, el userscript solicita a Roll20 una tirada real de `3d10`, recupera sus tres resultados y los devuelve a la ficha antes de enviar el comentario con la tirada y el daño calculado.
 
 ## Estructura
 
@@ -75,6 +77,8 @@ js/
   roll20-bridge.js
   ui.js
   app.js
+tampermonkey/
+  adom-roll20-bridge.user.js
 ```
 
 No se usan librerías externas, compiladores ni servidor. Los archivos JavaScript se cargan como scripts clásicos para que la ficha siga funcionando mediante `file:///`.
@@ -88,7 +92,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Cada forma permite marcar un único lazo como ancla.
 - Las habilidades tiran `/roll {3d10dh1}kh1+MODIFICADOR`.
 - Antes de una tirada de habilidad, la ficha pide el atributo y suma atributo + habilidad.
-- Las tiradas de atributo conservan el dado base configurado en el panel de Roll20.
+- Las tiradas de atributo conservan el dado base interno existente.
 
 - Los lazos vacíos no suman experiencia.
 - La ficha admite una imagen de personaje mediante URL pública directa, con encuadre por arrastre y zoom persistente.
