@@ -36,8 +36,9 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 12,
+            schemaVersion: 13,
             activeForm: "human",
+            drama: [true, true, true, true, true],
             profile: {
                 name: "Lluvia Clara",
                 imageUrl: "",
@@ -70,7 +71,6 @@
             human: {
                 attributes: humanAttributes,
                 skills: humanSkills,
-                drama: [true, true, true, true, true],
                 extraExperience: 0,
                 rd: 0,
                 weapons: [{ name: "", damage: "" }],
@@ -94,7 +94,6 @@
                     { name: "Eco de la tierra (innata)", value: 1 },
                     { name: "Dardo eléctrico (aprendida)", value: 1 }
                 ],
-                drama: [true, true, true, true, true],
                 extraExperience: 0,
                 rd: 0,
                 weapons: [],
@@ -185,7 +184,6 @@
                     talents: [String(talents?.[0] ?? ""), String(talents?.[1] ?? "")]
                 };
             }) : clone(defaultForm.skills),
-            drama: normalizeBooleanTrack(form.drama, defaultForm.drama, 5),
             extraExperience: normalizeNonNegativeNumber(form.extraExperience, 0),
             rd: normalizeNonNegativeNumber(form.rd, 0),
             weapons: defaultForm.weapons.length === 0
@@ -246,6 +244,8 @@
 
         const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
         const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
+        delete human.drama;
+        delete ecstasy.drama;
         if (normalizeNumber(candidate.schemaVersion, 0) < 12) {
             normalizeWeapons(candidate.ecstasy?.weapons).forEach(weapon => {
                 if (!weapon.name.trim() && !weapon.damage) return;
@@ -255,8 +255,15 @@
         }
 
         return {
-            schemaVersion: 12,
+            schemaVersion: 13,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
+            drama: normalizeBooleanTrack(
+                candidate.drama,
+                Array.isArray(candidate.human?.drama)
+                    ? candidate.human.drama
+                    : (Array.isArray(candidate.ecstasy?.drama) ? candidate.ecstasy.drama : defaults.drama),
+                5
+            ),
             profile: {
                 name: String(candidate.profile?.name ?? defaults.profile.name),
                 imageUrl: String(candidate.profile?.imageUrl ?? defaults.profile.imageUrl),

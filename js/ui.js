@@ -24,6 +24,22 @@
         </svg>`;
     }
 
+    function orderControls(kind, index, length, label) {
+        const safeLabel = escapeHtml(label);
+        return `<span class="reorder-controls" aria-label="Reordenar ${safeLabel}">
+            <button class="icon-button reorder-button" type="button" data-action="move-${kind}" data-index="${index}" data-direction="-1" title="Subir" aria-label="Subir ${safeLabel}" ${index === 0 ? "disabled" : ""}>↑</button>
+            <button class="icon-button reorder-button" type="button" data-action="move-${kind}" data-index="${index}" data-direction="1" title="Bajar" aria-label="Bajar ${safeLabel}" ${index === length - 1 ? "disabled" : ""}>↓</button>
+        </span>`;
+    }
+
+    function updateCumulativeTrack(track, index, checked) {
+        track.forEach((value, trackIndex) => {
+            if (checked ? trackIndex <= index : trackIndex >= index) {
+                track[trackIndex] = checked;
+            }
+        });
+    }
+
     function parseHexColor(hex) {
         const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex));
         return match ? [
@@ -64,7 +80,7 @@
                 "appShell", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsList",
-                "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
+                "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
                 "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "manualCommand", "sendCommandButton", "connectionStatus",
@@ -195,7 +211,7 @@
             this.renderAttributes(form, derived);
             this.renderSkills(form, derived);
             this.renderTemporalAspects(state.profile.temporalAspects);
-            this.renderDrama(form.drama);
+            this.renderDrama(state.drama);
             this.renderMilestones(state.profile.milestones);
             this.renderHealth(form, derived);
             this.renderCombat(form, state.human.weapons, derived);
@@ -232,6 +248,7 @@
             if (formKey === "ecstasy") {
                 this.elements.arcaneTotal.textContent = derived.arcaneTotal;
             }
+            this.updateFixedHeaderCounts(state);
 
             const outputs = {
                 initiative: derived.initiative,
@@ -463,11 +480,46 @@
             this.renderCharacterPortrait(this.store.getState().profile);
         }
 
-        shareCharacter() {
-            const payload = ADOM.State.encodeShareState(this.store.getState());
+        async shareCharacter() {
+            const pendingImageUrl = this.elements.characterImageUrl.value.trim();
+            const currentImageUrl = String(this.store.getState().profile.imageUrl || "").trim();
+
+            if (this.portraitEditing && pendingImageUrl && pendingImageUrl !== currentImageUrl) {
+                if (!/^https?:\/\//i.test(pendingImageUrl)) {
+                    this.showToast("La foto no se puede compartir: usa una URL pública que empiece por http:// o https://.", "error");
+                    return;
+                }
+                this.store.update(state => {
+                    state.profile.imageUrl = pendingImageUrl;
+                    state.profile.imageTransform = { x: 0, y: 0, zoom: 1 };
+                }, { source: "share-image" });
+            }
+
+            const shareState = JSON.parse(JSON.stringify(this.store.getState()));
+            const renderedImageUrl = this.elements.characterPortrait.dataset.defaultPortrait === "false"
+                ? this.elements.characterPortrait.src
+                : "";
+            if (!shareState.profile.imageUrl && renderedImageUrl) {
+                shareState.profile.imageUrl = renderedImageUrl;
+            }
+
+            const payload = ADOM.State.encodeShareState(shareState);
             const baseUrl = global.location.href.split("#")[0];
             const shareUrl = `${baseUrl}#view=${payload}`;
-            global.prompt("Copia este enlace para compartir la ficha en modo de solo lectura:", shareUrl);
+            let copied = false;
+            try {
+                if (global.navigator.clipboard?.writeText) {
+                    await global.navigator.clipboard.writeText(shareUrl);
+                    copied = true;
+                }
+            } catch (error) {
+                console.warn("[ADOM] No se pudo copiar automáticamente el enlace compartido.", error);
+            }
+            if (copied) {
+                this.showToast("Enlace de solo lectura copiado. Incluye la foto y su encuadre.", "success");
+            } else {
+                global.prompt("Copia este enlace para compartir la ficha en modo de solo lectura:", shareUrl);
+            }
             if (global.location.protocol === "file:") {
                 this.showToast("El enlace local solo funcionará donde exista esta misma ruta. Publícalo por HTTP/HTTPS para compartirlo con otras personas.", "info");
             }
@@ -487,6 +539,7 @@
                     <input type="text" value="${escapeHtml(attribute.descriptor)}" aria-label="Descriptor de ${escapeHtml(attribute.code)}" data-action="attribute-descriptor" data-index="${index}">
                     <input class="stat-value" type="number" min="0" step="1" value="${attribute.value}" aria-label="Valor de ${escapeHtml(attribute.code)}" data-action="attribute-value" data-index="${index}">
                     <button class="roll-button" type="button" title="Lanzar dado base + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">${diceIcon()}</button>
+                    ${orderControls("attribute", index, form.attributes.length, attribute.code)}
                 </div>
             `).join("");
             this.bindDynamicContainer(this.elements.attributesList);
@@ -501,6 +554,7 @@
                         <span class="skill-name">${escapeHtml(skill.label)}</span>
                         <input class="stat-value" type="number" min="0" step="1" value="${skill.value}" aria-label="Valor de ${escapeHtml(skill.label)}" data-action="skill-value" data-index="${index}">
                         <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">${diceIcon()}</button>
+                        ${orderControls("skill", index, form.skills.length, skill.label)}
                     </div>
                     <div class="skill-talents" aria-label="Talentos de ${escapeHtml(skill.label)}">
                         <input type="text" value="${escapeHtml(skill.talents?.[0] ?? "")}" placeholder="Talento 1" data-action="skill-talent" data-index="${index}" data-talent-index="0">
@@ -532,6 +586,7 @@
 
         renderMilestones(items) {
             const fixedItems = Array.from({ length: 6 }, (_, index) => items[index] ?? "");
+            this.elements.milestonesNote.textContent = `${fixedItems.filter(item => String(item).trim()).length}/6`;
             this.elements.milestonesList.innerHTML = fixedItems.map((item, index) => `
                 <div class="fixed-row">
                     <span class="fixed-row-number">${index + 1}</span>
@@ -623,7 +678,9 @@
                 ? items
                 : Array.from({ length: count }, (_, index) => items[index] || { name: "", level: 1, anchor: false });
             this.elements.bondsTitle.textContent = isEcstasy ? "Lazo" : "Lazos";
-            this.elements.bondsNote.textContent = isEcstasy ? (count ? "Ancla humana" : "Sin ancla") : "8 fijos";
+            this.elements.bondsNote.textContent = isEcstasy
+                ? (count ? "Ancla humana" : "Sin ancla")
+                : `${fixedItems.filter(item => String(item.name || "").trim()).length}/8`;
             if (!count) {
                 this.elements.bondsPanel.innerHTML = `<p class="empty-bond-message">No hay ningún lazo porque la forma humana no tiene ancla.</p>`;
                 return;
@@ -655,6 +712,15 @@
                 return anchor ? [anchor] : [];
             }
             return state.human.bonds;
+        }
+
+        updateFixedHeaderCounts(state) {
+            const milestones = Array.from({ length: 6 }, (_, index) => state.profile.milestones[index] ?? "");
+            this.elements.milestonesNote.textContent = `${milestones.filter(item => String(item).trim()).length}/6`;
+            if (state.activeForm === "human") {
+                const filledBonds = state.human.bonds.filter(item => String(item.name || "").trim()).length;
+                this.elements.bondsNote.textContent = `${filledBonds}/8`;
+            }
         }
 
         renderChecks(formKey, derived) {
@@ -753,10 +819,10 @@
             this.store.update(state => {
                 const form = state[state.activeForm];
                 switch (action) {
-                    case "drama": form.drama[index] = target.checked; break;
+                    case "drama": updateCumulativeTrack(state.drama, index, target.checked); break;
                     case "light-wound": form.health.lightWounds[index] = target.checked; break;
                     case "severe-wound": form.health.severeWounds[index] = target.checked; break;
-                    case "ecstasy-track": state.distortion.ecstasyTrack[index] = target.checked; break;
+                    case "ecstasy-track": updateCumulativeTrack(state.distortion.ecstasyTrack, index, target.checked); break;
                     case "bond-anchor":
                         if (state.activeForm === "ecstasy") return;
                         form.bonds.forEach((bond, bondIndex) => { bond.anchor = target.checked && bondIndex === index; });
@@ -778,6 +844,17 @@
             }
             if (action === "roll-weapon") {
                 this.rollWeapon(index);
+                return;
+            }
+            if (action === "move-attribute" || action === "move-skill") {
+                const direction = Number(target.dataset.direction);
+                this.store.update(state => {
+                    const form = state[state.activeForm];
+                    const items = action === "move-attribute" ? form.attributes : form.skills;
+                    const destination = index + direction;
+                    if (![-1, 1].includes(direction) || destination < 0 || destination >= items.length) return;
+                    [items[index], items[destination]] = [items[destination], items[index]];
+                }, { source: "reorder-stat" });
                 return;
             }
 
@@ -817,14 +894,14 @@
             await this.sendRollCommand(`/roll {3d10dh1}kh1${signedModifier}`, label);
         }
 
-        chooseAttribute(attributes, skillLabel) {
+        chooseAttribute(attributes, rollLabel, chooseSkillAfter = false) {
             return new Promise(resolve => {
                 const backdrop = document.createElement("div");
                 backdrop.className = "attribute-picker-backdrop";
                 backdrop.innerHTML = `
                     <section class="attribute-picker" role="dialog" aria-modal="true" aria-labelledby="attributePickerTitle">
-                        <h2 id="attributePickerTitle">¿Con qué atributo tiras ${escapeHtml(skillLabel)}?</h2>
-                        <p>Se sumará el valor de la habilidad y el atributo seleccionado.</p>
+                        <h2 id="attributePickerTitle">¿Con qué atributo tiras ${escapeHtml(rollLabel)}?</h2>
+                        <p>${chooseSkillAfter ? "Después podrás elegir la habilidad de la tirada." : "Se sumará el valor de la habilidad y el atributo seleccionado."}</p>
                         <div class="attribute-picker-options">
                             ${attributes.map((attribute, index) => `
                                 <button type="button" class="attribute-option" data-attribute-index="${index}">
@@ -865,14 +942,14 @@
             });
         }
 
-        chooseSkill(skills, weaponLabel) {
+        chooseSkill(skills, weaponLabel, attributeLabel = "") {
             return new Promise(resolve => {
                 const backdrop = document.createElement("div");
                 backdrop.className = "attribute-picker-backdrop";
                 backdrop.innerHTML = `
                     <section class="attribute-picker" role="dialog" aria-modal="true" aria-labelledby="skillPickerTitle">
                         <h2 id="skillPickerTitle">¿Con qué habilidad usas ${escapeHtml(weaponLabel || "este ataque")}?</h2>
-                        <p>Después podrás elegir el atributo de la tirada.</p>
+                        <p>${attributeLabel ? `Se sumará al atributo ${escapeHtml(attributeLabel)} seleccionado.` : "Después podrás elegir el atributo de la tirada."}</p>
                         <div class="attribute-picker-options">
                             ${skills.map((skill, index) => `
                                 <button type="button" class="attribute-option" data-skill-index="${index}">
@@ -912,13 +989,13 @@
                 this.showToast("Usa una fórmula como MMm+5: solo m, c, M y un bonificador con + o -.", "error");
                 return;
             }
-            const skillIndex = await this.chooseSkill(form.skills, weapon.name);
-            if (skillIndex === null) return;
-            const attributeIndex = await this.chooseAttribute(form.attributes, form.skills[skillIndex].label);
+            const attributeIndex = await this.chooseAttribute(form.attributes, weapon.name || "este ataque", true);
             if (attributeIndex === null) return;
+            const attribute = form.attributes[attributeIndex];
+            const skillIndex = await this.chooseSkill(form.skills, weapon.name, attribute.code);
+            if (skillIndex === null) return;
 
             const skill = form.skills[skillIndex];
-            const attribute = form.attributes[attributeIndex];
             let dice;
             try {
                 dice = await this.bridge.rollDamageDice(

@@ -371,6 +371,12 @@ input[type="checkbox"] {
     gap: 10px;
 }
 
+.sheet-portrait-column {
+    display: grid;
+    align-content: start;
+    gap: 10px;
+}
+
 .card,
 .summary-card,
 .roll20-card,
@@ -495,7 +501,7 @@ input[type="checkbox"] {
 
 .stat-row {
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) 48px 32px;
+    grid-template-columns: 42px minmax(0, 1fr) 48px 32px 22px;
     align-items: center;
     gap: 6px;
     min-height: 39px;
@@ -573,6 +579,10 @@ input[type="checkbox"] {
     padding: 0;
 }
 
+#skillsList {
+    padding-block:  0px;
+}
+
 .icon-button {
     display: grid;
     place-items: center;
@@ -586,6 +596,35 @@ input[type="checkbox"] {
 .icon-button:hover {
     color: var(--danger);
     background: rgba(159, 49, 64, 0.08);
+}
+
+.reorder-controls {
+    display: grid;
+    gap: 1px;
+}
+
+.reorder-button {
+    width: 22px;
+    height: 16px;
+    border-radius: 4px;
+    color: var(--muted);
+    font-size: 0.66rem;
+    line-height: 1;
+}
+
+.reorder-button:hover {
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+}
+
+.reorder-button:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
+
+.reorder-button:disabled:hover {
+    color: var(--muted);
+    background: none;
 }
 
 .card-inline {
@@ -1095,7 +1134,6 @@ input[type="checkbox"] {
     border-bottom: 1px solid var(--line);
     padding: 0.35rem 0;
 }
-.skill-block:last-child { border-bottom: 0; }
 .skill-main-row { border-bottom: 0; }
 .skill-name {
     display: flex;
@@ -1308,6 +1346,14 @@ input[type="checkbox"] {
 .portrait-preview-wrap.is-editing {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
+}
+
+.app-shell[data-viewer="true"] .reorder-controls {
+    display: none;
+}
+
+.app-shell[data-viewer="true"] .stat-row {
+    grid-template-columns: 42px minmax(0, 1fr) 48px 32px;
 }
 .portrait-editor-controls {
     display: grid;

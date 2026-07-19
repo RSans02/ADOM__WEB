@@ -101,7 +101,7 @@
 
                     <section class="card" aria-labelledby="milestonesTitle">
                         <div class="card-header">
-                            <h2 id="milestonesTitle">Hitos</h2><span class="header-note">6 fijos</span>
+                            <h2 id="milestonesTitle">Hitos</h2><span class="header-note" id="milestonesNote">0/6</span>
                         </div>
                         <div class="card-body repeatable-list" id="milestonesList"></div>
                     </section>
@@ -182,6 +182,20 @@
                             <small class="portrait-adjustment-help" id="portraitAdjustmentHelp" hidden>Arrastra la imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
                         </div>
                     </section>
+
+                    <section class="appearance-card" aria-labelledby="appearanceTitle">
+                        <h2 id="appearanceTitle">Apariencia</h2>
+                        <div class="color-setting">
+                            <span>Forma humana</span>
+                            <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
+                            <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
+                        </div>
+                        <div class="color-setting">
+                            <span>Forma de éxtasis</span>
+                            <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
+                            <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
+                        </div>
+                    </section>
                 </div>
 
                 <aside class="sheet-sidebar">
@@ -206,20 +220,6 @@
                             <div><span>Comprar habilidad</span><strong>5 XP</strong></div>
                             <div><span>Comprar talento</span><strong>10 XP</strong></div>
                             <div><span>Comprar atributo</span><strong>15 XP</strong></div>
-                        </div>
-                    </section>
-
-                    <section class="appearance-card" aria-labelledby="appearanceTitle">
-                        <h2 id="appearanceTitle">Apariencia</h2>
-                        <div class="color-setting">
-                            <span>Forma humana</span>
-                            <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
-                            <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
-                        </div>
-                        <div class="color-setting">
-                            <span>Forma de éxtasis</span>
-                            <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
-                            <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
                         </div>
                     </section>
 
