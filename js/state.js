@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 13,
+            schemaVersion: 15,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -73,10 +73,12 @@
                 skills: humanSkills,
                 extraExperience: 0,
                 rd: 0,
-                weapons: [{ name: "", damage: "" }],
+                weapons: [{ name: "", damage: "", damageType: "ranged" }],
                 health: {
                     currentResistance: 12,
+                    lightWoundDescription: "",
                     lightWounds: [false, false],
+                    severeWoundDescription: "",
                     severeWounds: [false, false]
                 },
                 bonds: [
@@ -99,7 +101,9 @@
                 weapons: [],
                 health: {
                     currentResistance: 12,
+                    lightWoundDescription: "",
                     lightWounds: [false, false],
+                    severeWoundDescription: "",
                     severeWounds: [false, false]
                 },
                 bonds: []
@@ -134,11 +138,13 @@
             form.extraExperience = 0;
             form.rd = 0;
             form.health.currentResistance = 0;
+            form.health.lightWoundDescription = "";
             form.health.lightWounds.fill(false);
+            form.health.severeWoundDescription = "";
             form.health.severeWounds.fill(false);
         });
 
-        state.human.weapons = [{ name: "", damage: "" }];
+        state.human.weapons = [{ name: "", damage: "", damageType: "ranged" }];
         state.human.bonds.forEach(bond => {
             bond.name = "";
             bond.level = 1;
@@ -192,16 +198,15 @@
 
     function normalizeDamageFormula(value) {
         const formula = String(value ?? "").trim();
-        const match = /^([mMc]+)([+-])(\d+)$/.exec(formula);
-        if (!match || formula.length > 64) return "";
-        const bonus = Number(`${match[2]}${match[3]}`);
-        return Number.isSafeInteger(bonus) ? formula : "";
+        const match = /^([mMc]+)(?:[+-]\d+)?$/.exec(formula);
+        return match && match[1].length <= 16 ? match[1] : "";
     }
 
     function normalizeWeapons(value) {
         return Array.isArray(value) ? value.map(item => ({
             name: String(item?.name ?? ""),
-            damage: normalizeDamageFormula(item?.damage)
+            damage: normalizeDamageFormula(item?.damage),
+            damageType: item?.damageType === "melee" ? "melee" : "ranged"
         })) : [];
     }
 
@@ -235,7 +240,9 @@
                 ...clone(defaultForm.health),
                 ...(form.health || {}),
                 currentResistance: normalizeNonNegativeNumber(form.health?.currentResistance, defaultForm.health.currentResistance),
+                lightWoundDescription: String(form.health?.lightWoundDescription ?? defaultForm.health.lightWoundDescription),
                 lightWounds: normalizeBooleanTrack(form.health?.lightWounds, defaultForm.health.lightWounds, 2),
+                severeWoundDescription: String(form.health?.severeWoundDescription ?? defaultForm.health.severeWoundDescription),
                 severeWounds: normalizeBooleanTrack(form.health?.severeWounds, defaultForm.health.severeWounds, 2)
             },
             bonds: Array.from({ length: defaultForm.bonds.length }, (_, index) => {
@@ -297,7 +304,7 @@
         }
 
         return {
-            schemaVersion: 13,
+            schemaVersion: 15,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
             drama: normalizeBooleanTrack(
                 candidate.drama,

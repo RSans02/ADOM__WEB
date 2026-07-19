@@ -83,13 +83,18 @@
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
-                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "manualCommand", "sendCommandButton", "connectionStatus",
+                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "sendCommandButton", "connectionStatus",
                 "bridgeMessage", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
         }
 
         bindStaticEvents() {
+            this.elements.appShell.addEventListener("input", event => {
+                if (event.target.matches('input[type="text"]')) {
+                    event.target.title = event.target.value;
+                }
+            });
             this.elements.humanTab.addEventListener("click", () => this.setActiveForm("human"));
             this.elements.ecstasyTab.addEventListener("click", () => this.setActiveForm("ecstasy"));
 
@@ -158,6 +163,7 @@
             this.elements.ecstasyColorInput.addEventListener("input", event => this.setFormColor("ecstasy", event.target.value));
             this.elements.humanBackgroundInput.addEventListener("input", event => this.setFormBackground("human", event.target.value));
             this.elements.ecstasyBackgroundInput.addEventListener("input", event => this.setFormBackground("ecstasy", event.target.value));
+            this.elements.resetAppearanceButton.addEventListener("click", () => this.resetAppearance());
 
             this.elements.extraExperience.addEventListener("input", event => {
                 this.store.update(state => {
@@ -166,7 +172,7 @@
             });
 
             this.elements.addWeaponButton.addEventListener("click", () => {
-                this.store.update(state => state.human.weapons.push({ name: "", damage: "" }));
+                this.store.update(state => state.human.weapons.push({ name: "", damage: "", damageType: "ranged" }));
             });
             this.elements.addArcaneSkillButton.addEventListener("click", () => {
                 this.store.update(state => state.ecstasy.arcaneSkills.push({ name: "", value: 1 }));
@@ -221,6 +227,7 @@
             this.renderChecks(formKey, derived);
             this.renderHelp(formKey);
             if (this.viewerMode) this.applyViewerRestrictions();
+            this.syncTextInputTitles();
         }
 
         enableViewerMode() {
@@ -308,6 +315,17 @@
             }, { source: "theme-background" });
         }
 
+        resetAppearance() {
+            if (!global.confirm("¿Quieres restablecer los colores de apariencia de ambas formas?")) return;
+            this.store.update(state => {
+                state.settings.formColors.human = "#a64d78";
+                state.settings.formColors.ecstasy = "#3f7f8b";
+                state.settings.formBackgrounds.human = "#ead5df";
+                state.settings.formBackgrounds.ecstasy = "#d4e4e7";
+            }, { source: "reset-appearance" });
+            this.showToast("Apariencia restablecida.", "success");
+        }
+
         applyFormTheme(color, background) {
             const rgb = parseHexColor(color);
             this.elements.appShell.style.setProperty("--accent", color);
@@ -322,6 +340,12 @@
             if (document.activeElement !== element) {
                 element.value = value ?? "";
             }
+        }
+
+        syncTextInputTitles(root = this.elements.appShell) {
+            root.querySelectorAll('input[type="text"]').forEach(input => {
+                input.title = input.value;
+            });
         }
 
         renderCharacterPortrait(profile) {
@@ -606,8 +630,8 @@
                 </div>
                 <div class="wounds-block">
                     <p class="wounds-title">Heridas</p>
-                    <div class="wound-row"><span>Leves</span>${form.health.lightWounds.map((checked, index) => `<label class="wound-marker"><input type="checkbox" ${checked ? "checked" : ""} data-action="light-wound" data-index="${index}"></label>`).join("")}</div>
-                    <div class="wound-row"><span>Graves</span>${form.health.severeWounds.map((checked, index) => `<label class="wound-marker"><input type="checkbox" ${checked ? "checked" : ""} data-action="severe-wound" data-index="${index}"></label>`).join("")}</div>
+                    <div class="wound-row"><input class="wound-description" type="text" value="${escapeHtml(form.health.lightWoundDescription)}" placeholder="" aria-label="Descripción de heridas leves" data-action="light-wound-description"><span>Leves</span>${form.health.lightWounds.map((checked, index) => `<label class="wound-marker"><input type="checkbox" ${checked ? "checked" : ""} data-action="light-wound" data-index="${index}"></label>`).join("")}</div>
+                    <div class="wound-row"><input class="wound-description" type="text" value="${escapeHtml(form.health.severeWoundDescription)}" placeholder="" aria-label="Descripción de heridas graves" data-action="severe-wound-description"><span>Graves</span>${form.health.severeWounds.map((checked, index) => `<label class="wound-marker"><input type="checkbox" ${checked ? "checked" : ""} data-action="severe-wound" data-index="${index}"></label>`).join("")}</div>
                     <p class="skull-note">☠ Marca el estado de heridas; la interpretación mecánica queda a cargo de la mesa.</p>
                 </div>
             `;
@@ -623,11 +647,15 @@
                     <label for="rdInput">RD</label>
                     <input id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
                 </div>
-                <div class="weapon-table-header"><span>Arma / ataque</span><span>Daño</span><span></span><span></span></div>
+                <div class="weapon-table-header"><span>Arma / ataque</span><span>Daño</span><span>Tipo</span><span></span><span></span></div>
                 ${weapons.map((weapon, index) => `
                     <div class="weapon-row">
                         <input type="text" value="${escapeHtml(weapon.name)}" placeholder="Nombre" data-action="weapon-name" data-index="${index}">
-                        <input type="text" value="${escapeHtml(weapon.damage)}" data-last-valid="${escapeHtml(weapon.damage)}" placeholder="MMm+5" maxlength="64" spellcheck="false" aria-label="Fórmula de daño de ${escapeHtml(weapon.name || "arma")}" data-action="weapon-damage" data-index="${index}">
+                        <input type="text" value="${escapeHtml(weapon.damage)}" data-last-valid="${escapeHtml(weapon.damage)}" placeholder="mMc" maxlength="16" spellcheck="false" aria-label="Dados de daño de ${escapeHtml(weapon.name || "arma")}" data-action="weapon-damage" data-index="${index}">
+                        <select class="weapon-damage-type" title="Tipo de daño" aria-label="Tipo de daño de ${escapeHtml(weapon.name || "arma")}" data-action="weapon-damage-type" data-index="${index}">
+                            <option value="ranged" ${weapon.damageType === "melee" ? "" : "selected"}>Distancia</option>
+                            <option value="melee" ${weapon.damageType === "melee" ? "selected" : ""}>Cuerpo a cuerpo</option>
+                        </select>
                         <button class="roll-button" type="button" title="Tirar daño" aria-label="Tirar daño de ${escapeHtml(weapon.name || "arma")}" data-action="roll-weapon" data-index="${index}">${diceIcon()}</button>
                         <button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar arma" data-action="remove-weapon" data-index="${index}">×</button>
                     </div>
@@ -786,9 +814,12 @@
                     case "skill-talent": form.skills[index].talents[Number(target.dataset.talentIndex)] = value; break;
                     case "milestone": state.profile.milestones[index] = value; break;
                     case "current-resistance": form.health.currentResistance = value; break;
+                    case "light-wound-description": form.health.lightWoundDescription = value; break;
+                    case "severe-wound-description": form.health.severeWoundDescription = value; break;
                     case "rd": form.rd = value; break;
                     case "weapon-name": weapons[index].name = value; break;
                     case "weapon-damage": weapons[index].damage = value; break;
+                    case "weapon-damage-type": weapons[index].damageType = value === "melee" ? "melee" : "ranged"; break;
                     case "distortion-level": state.distortion.level = value; break;
                     case "arcane-name": state.ecstasy.arcaneSkills[index].name = value; break;
                     case "arcane-value": state.ecstasy.arcaneSkills[index].value = value; break;
@@ -858,6 +889,15 @@
                 return;
             }
 
+            if (action === "clear-temporal") {
+                const aspect = this.store.getState().profile.temporalAspects[index];
+                if (!global.confirm(`¿Seguro que quieres vaciar el aspecto${aspect?.trim() ? ` «${aspect.trim()}»` : ""}?`)) return;
+            }
+            if (action === "remove-weapon") {
+                const weapon = this.store.getState().human.weapons[index];
+                if (!global.confirm(`¿Seguro que quieres eliminar el arma${weapon?.name?.trim() ? ` «${weapon.name.trim()}»` : ""}?`)) return;
+            }
+
             this.store.update(state => {
                 const form = state[state.activeForm];
                 switch (action) {
@@ -888,10 +928,79 @@
             }
 
             const attribute = form.attributes[attributeIndex];
-            const modifier = ADOM.Calculations.number(skill.value) + ADOM.Calculations.number(attribute.value);
+            const rollOptions = await this.chooseSkillRollOptions(skill);
+            if (rollOptions === null) return;
+
+            const modifier = ADOM.Calculations.number(skill.value)
+                + ADOM.Calculations.number(attribute.value)
+                + rollOptions.extraModifier;
             const signedModifier = modifier >= 0 ? `+${modifier}` : `${modifier}`;
-            const label = `${skill.label} con ${attribute.code}`;
-            await this.sendRollCommand(`/roll {3d10dh1}kh1${signedModifier}`, label);
+            const diceExpression = rollOptions.talent ? "{3d10dh1}kh2" : "{3d10dh1}kh1";
+            const label = `${skill.label} con ${attribute.code}${rollOptions.talent ? ` · ${rollOptions.talent}` : ""}`;
+            await this.sendRollCommand(`/roll ${diceExpression}${signedModifier}`, label);
+        }
+
+        chooseSkillRollOptions(skill) {
+            const talents = (skill.talents || [])
+                .map(talent => String(talent || "").trim())
+                .filter(Boolean);
+
+            return new Promise(resolve => {
+                const backdrop = document.createElement("div");
+                backdrop.className = "attribute-picker-backdrop";
+                backdrop.innerHTML = `
+                    <form class="attribute-picker skill-roll-options" role="dialog" aria-modal="true" aria-labelledby="skillRollOptionsTitle">
+                        <h2 id="skillRollOptionsTitle">Preparar tirada de ${escapeHtml(skill.label)}</h2>
+                        <p>Con talento se suman el dado central y el dado pequeño. Sin talento solo se usa el central.</p>
+                        <fieldset class="talent-choice-list">
+                            <legend>Talento</legend>
+                            <label class="talent-choice">
+                                <input type="radio" name="talent" value="-1" checked>
+                                <span><strong>Sin talento</strong><small>Tirada normal</small></span>
+                            </label>
+                            ${talents.map((talent, index) => `
+                                <label class="talent-choice">
+                                    <input type="radio" name="talent" value="${index}">
+                                    <span><strong>${escapeHtml(talent)}</strong><small>Suma el dado pequeño</small></span>
+                                </label>
+                            `).join("")}
+                        </fieldset>
+                        <label class="field roll-extra-modifier">
+                            <span>Modificador extra</span>
+                            <input name="extraModifier" type="number" step="1" value="0" inputmode="numeric">
+                        </label>
+                        <div class="reset-confirm-actions">
+                            <button type="button" class="button button-secondary skill-roll-cancel">Cancelar</button>
+                            <button type="submit" class="button button-primary">Tirar</button>
+                        </div>
+                    </form>
+                `;
+
+                const form = backdrop.querySelector("form");
+                const close = value => {
+                    document.removeEventListener("keydown", onKeyDown);
+                    backdrop.remove();
+                    resolve(value);
+                };
+                const onKeyDown = event => { if (event.key === "Escape") close(null); };
+
+                backdrop.addEventListener("click", event => {
+                    if (event.target === backdrop || event.target.closest(".skill-roll-cancel")) close(null);
+                });
+                form.addEventListener("submit", event => {
+                    event.preventDefault();
+                    const talentIndex = Number(form.elements.talent.value);
+                    close({
+                        talent: talentIndex >= 0 ? talents[talentIndex] : "",
+                        extraModifier: this.numberFromInput(form.elements.extraModifier.value)
+                    });
+                });
+
+                document.addEventListener("keydown", onKeyDown);
+                document.body.appendChild(backdrop);
+                form.elements.extraModifier.focus();
+                form.elements.extraModifier.select();
+            });
         }
 
         chooseAttribute(attributes, rollLabel, chooseSkillAfter = false) {
@@ -983,10 +1092,11 @@
         async rollWeapon(index) {
             const state = this.store.getState();
             const form = state[state.activeForm];
+            const derived = ADOM.Calculations.deriveForm(state, state.activeForm);
             const weapon = state.human.weapons[index];
             const formula = String(weapon.damage || "").trim();
             if (!ADOM.Calculations.parseDamageFormula(formula)) {
-                this.showToast("Usa una fórmula como MMm+5: solo m, c, M y un bonificador con + o -.", "error");
+                this.showToast("Usa una fórmula como mMc: solo se admiten m, c y M.", "error");
                 return;
             }
             const attributeIndex = await this.chooseAttribute(form.attributes, weapon.name || "este ataque", true);
@@ -1007,7 +1117,8 @@
                 return;
             }
 
-            const damage = ADOM.Calculations.calculateWeaponDamage(formula, dice);
+            const damageBonus = weapon.damageType === "melee" ? derived.meleeDamage : derived.rangedDamage;
+            const damage = ADOM.Calculations.calculateWeaponDamage(formula, dice, damageBonus);
             if (!damage) {
                 this.showToast("No se pudo calcular el daño. Revisa la fórmula.", "error");
                 return;
@@ -1111,6 +1222,7 @@
                 };
 
                 input.addEventListener("input", () => {
+                    input.title = input.value;
                     submitButton.disabled = input.value !== "RESTABLECER";
                 });
                 backdrop.addEventListener("click", event => {
@@ -1123,6 +1235,7 @@
 
                 document.addEventListener("keydown", onKeyDown);
                 document.body.appendChild(backdrop);
+                this.syncTextInputTitles(backdrop);
                 input.focus();
             });
         }

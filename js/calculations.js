@@ -33,29 +33,28 @@
 
     function isDamageFormulaInput(value) {
         const formula = String(value ?? "");
-        return formula === "" || (formula.length <= 64 && /^[mMc]+(?:[+-]\d*)?$/.test(formula));
+        return formula.length <= 16 && /^[mMc]*$/.test(formula);
     }
 
     function parseDamageFormula(value) {
         const formula = String(value ?? "").trim();
-        const match = /^([mMc]+)([+-])(\d+)$/.exec(formula);
-        if (!match || formula.length > 64) return null;
-        const bonus = Number(`${match[2]}${match[3]}`);
-        if (!Number.isSafeInteger(bonus)) return null;
-        return { formula, symbols: [...match[1]], bonus };
+        if (!/^[mMc]+$/.test(formula) || formula.length > 16) return null;
+        return { formula, symbols: [...formula] };
     }
 
-    function calculateWeaponDamage(formula, dice) {
+    function calculateWeaponDamage(formula, dice, bonus = 0) {
         const parsed = parseDamageFormula(formula);
         if (!parsed || !Array.isArray(dice) || dice.length !== 3) return null;
+        const safeBonus = number(bonus);
+        if (!Number.isSafeInteger(safeBonus)) return null;
         const sortedDice = dice.map(number).sort((a, b) => a - b);
         if (sortedDice.some(die => !Number.isInteger(die) || die < 1 || die > 10)) return null;
         const values = { m: sortedDice[0], c: sortedDice[1], M: sortedDice[2] };
         const selectedDice = parsed.symbols.map(symbol => values[symbol]);
         const diceTotal = selectedDice.reduce((total, die) => total + die, 0);
-        const total = diceTotal + parsed.bonus;
+        const total = diceTotal + safeBonus;
         if (!Number.isSafeInteger(total)) return null;
-        return { ...parsed, sortedDice, values, selectedDice, diceTotal, total };
+        return { ...parsed, bonus: safeBonus, sortedDice, values, selectedDice, diceTotal, total };
     }
 
     function deriveForm(state, formKey) {

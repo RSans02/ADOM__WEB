@@ -39,7 +39,7 @@ El userscript debe incluir:
 - Importación y exportación del personaje en JSON.
 - Envío de comandos manuales al chat de Roll20.
 - Botones de tirada en atributos y habilidades.
-- Tiradas de daño de armas mediante una fórmula editable.
+- Tiradas de daño de armas mediante dados `m`, `c` y `M`, con selector de daño a distancia o cuerpo a cuerpo.
 - Diseño responsive para escritorio, tablet y móvil.
 
 ## Cálculos reproducidos
@@ -62,7 +62,7 @@ Las habilidades usan:
 {3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat, la ficha los ordena como `m`, `c` y `M`, calcula el daño y después envía al chat `Daño -> resultado`.
+Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat y la ficha los ordena como `m`, `c` y `M`. La fórmula del arma solo contiene esos símbolos; después se suma automáticamente el daño a distancia o cuerpo a cuerpo elegido en su selector y se envía al chat `Daño -> resultado`.
 
 ## Estructura
 
@@ -91,8 +91,8 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Los lazos son exactamente ocho y no se pueden eliminar.
 - Los encabezados de Hitos y Lazos humanos muestran cuántas filas están rellenadas respecto al total disponible.
 - Cada forma permite marcar un único lazo como ancla.
-- Las habilidades tiran `/roll {3d10dh1}kh1+MODIFICADOR`.
-- Antes de una tirada de habilidad, la ficha pide el atributo y suma atributo + habilidad.
+- Las habilidades sin talento tiran `/roll {3d10dh1}kh1+MODIFICADOR`; al usar un talento cambian a `/roll {3d10dh1}kh2+MODIFICADOR` para sumar tambiÃ©n el dado pequeÃ±o.
+- Antes de una tirada de habilidad, la ficha pide el atributo, permite elegir uno de los talentos de la habilidad y ofrece un modificador extra temporal que empieza siempre en 0.
 - En las tiradas de armas y ataques se elige primero el atributo y después la habilidad.
 - Las tiradas de atributo conservan el dado base interno existente.
 
