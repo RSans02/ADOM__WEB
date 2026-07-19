@@ -36,12 +36,13 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 8,
+            schemaVersion: 10,
             activeForm: "human",
             profile: {
                 name: "Lluvia Clara",
                 imageUrl: "",
                 imageTransform: { x: 0, y: 0, zoom: 1 },
+                imageFrame: "square",
                 concept: "Solitaria soñadora",
                 complication: "Dispersa",
                 temporalAspects: ["", "", "", ""],
@@ -120,11 +121,12 @@
         return Math.min(maximum, Math.max(minimum, normalizeNumber(value, fallback)));
     }
 
-    function normalizeImageTransform(value) {
+    function normalizeImageTransform(value, legacyPosition) {
         const zoom = clamp(value?.zoom, 1, 3, 1);
+        const positionScale = legacyPosition ? 2 : 1;
         return {
-            x: clamp(value?.x, -50, 50, 0),
-            y: clamp(value?.y, -50, 50, 0),
+            x: clamp(normalizeNumber(value?.x, 0) * positionScale, -100, 100, 0),
+            y: clamp(normalizeNumber(value?.y, 0) * positionScale, -100, 100, 0),
             zoom
         };
     }
@@ -229,12 +231,13 @@
         }
 
         return {
-            schemaVersion: 8,
+            schemaVersion: 10,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
             profile: {
                 name: String(candidate.profile?.name ?? defaults.profile.name),
                 imageUrl: String(candidate.profile?.imageUrl ?? defaults.profile.imageUrl),
-                imageTransform: normalizeImageTransform(candidate.profile?.imageTransform),
+                imageTransform: normalizeImageTransform(candidate.profile?.imageTransform, normalizeNumber(candidate.schemaVersion, 0) < 10),
+                imageFrame: candidate.profile?.imageFrame === "portrait" ? "portrait" : "square",
                 concept: String(candidate.profile?.concept ?? defaults.profile.concept),
                 complication: String(candidate.profile?.complication ?? defaults.profile.complication),
                 temporalAspects: normalizeStringArray(candidate.profile?.temporalAspects, defaults.profile.temporalAspects),
@@ -260,10 +263,26 @@
         };
     }
 
+    function encodeShareState(state) {
+        const bytes = new TextEncoder().encode(JSON.stringify(normalizeState(state)));
+        let binary = "";
+        bytes.forEach(byte => { binary += String.fromCharCode(byte); });
+        return global.btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
+    }
+
+    function decodeShareState(payload) {
+        const normalizedPayload = String(payload || "").replaceAll("-", "+").replaceAll("_", "/");
+        const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, "=");
+        const binary = global.atob(paddedPayload);
+        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+        return normalizeState(JSON.parse(new TextDecoder().decode(bytes)));
+    }
+
     class CharacterStore extends EventTarget {
-        constructor() {
+        constructor(options) {
             super();
-            this.state = this.load();
+            this.persistenceEnabled = options?.persistenceEnabled !== false;
+            this.state = options?.initialState ? normalizeState(options.initialState) : this.load();
             this.saveTimer = null;
         }
 
@@ -294,12 +313,14 @@
         }
 
         scheduleSave() {
+            if (!this.persistenceEnabled) return;
             this.dispatchEvent(new CustomEvent("save-state", { detail: { state: "saving" } }));
             global.clearTimeout(this.saveTimer);
             this.saveTimer = global.setTimeout(() => this.save(), 250);
         }
 
         save() {
+            if (!this.persistenceEnabled) return;
             try {
                 global.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
                 this.dispatchEvent(new CustomEvent("save-state", { detail: { state: "saved" } }));
@@ -312,11 +333,13 @@
         reset() {
             const preservedImage = {
                 imageUrl: this.state.profile.imageUrl,
-                imageTransform: clone(this.state.profile.imageTransform)
+                imageTransform: clone(this.state.profile.imageTransform),
+                imageFrame: this.state.profile.imageFrame
             };
             this.state = createDefaultState();
             this.state.profile.imageUrl = preservedImage.imageUrl;
             this.state.profile.imageTransform = preservedImage.imageTransform;
+            this.state.profile.imageFrame = preservedImage.imageFrame;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "reset" } }));
             this.save();
         }
@@ -335,6 +358,8 @@
         STORAGE_KEY,
         createDefaultState,
         normalizeState,
+        encodeShareState,
+        decodeShareState,
         CharacterStore
     });
 })(window);

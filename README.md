@@ -92,7 +92,9 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 
 - Los lazos vacíos no suman experiencia.
 - La ficha admite una imagen de personaje mediante URL pública directa, con encuadre por arrastre y zoom persistente.
+- El marco de la imagen puede mostrarse cuadrado o en formato vertical 3:4.
 - Los colores principales y de fondo de la forma humana y la forma de éxtasis se pueden configurar por separado.
+- El botón Compartir genera un enlace de solo lectura sin edición ni tiradas. Para usarlo entre equipos, la aplicación debe estar publicada por HTTP/HTTPS.
 - La forma humana conserva 8 lazos. Éxtasis refleja el lazo humano marcado como ancla; si no hay ancla, no muestra ninguno.
 - Los botones de tirada muestran un icono de dado.
 

@@ -2,6 +2,7 @@
     "use strict";
 
     const ADOM = global.ADOM = global.ADOM || {};
+    const DEFAULT_PORTRAIT_URL = "https://img.magnific.com/vector-gratis/ilustracion-icono-galeria_53876-27002.jpg";
 
     function escapeHtml(value) {
         return String(value ?? "")
@@ -43,6 +44,7 @@
             this.store = store;
             this.bridge = bridge;
             this.portraitDrag = null;
+            this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
             this.store.addEventListener("change", event => {
@@ -58,8 +60,8 @@
 
         collectElements() {
             const ids = [
-                "appShell", "humanTab", "ecstasyTab", "saveStatus", "exportButton", "importInput", "resetButton",
-                "characterName", "characterImageUrl", "characterPortrait", "characterPortraitPlaceholder", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
+                "appShell", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "resetButton",
+                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
@@ -84,13 +86,22 @@
                 }
             });
             this.elements.characterPortrait.addEventListener("error", () => {
+                const failedDefault = this.elements.characterPortrait.dataset.defaultPortrait === "true";
                 this.elements.characterPortrait.hidden = true;
                 this.elements.characterPortraitPlaceholder.hidden = false;
-                this.showToast("La imagen no se pudo cargar. Comprueba que la URL sea pública y directa.", "error");
+                if (!failedDefault) {
+                    this.showToast("La imagen no se pudo cargar. Se mostrará la imagen predeterminada.", "error");
+                    this.store.update(state => {
+                        state.profile.imageUrl = "";
+                        state.profile.imageTransform = { x: 0, y: 0, zoom: 1 };
+                    });
+                }
             });
             this.elements.characterPortrait.addEventListener("load", () => {
                 this.elements.characterPortrait.hidden = false;
                 this.elements.characterPortraitPlaceholder.hidden = true;
+                const profile = this.store.getState().profile;
+                this.applyPortraitTransform(this.hasCustomPortrait() ? profile.imageTransform : { x: 0, y: 0, zoom: 1 });
             });
             this.elements.characterPortrait.addEventListener("pointerdown", event => this.startPortraitDrag(event));
             this.elements.characterPortrait.addEventListener("pointermove", event => this.movePortraitDrag(event));
@@ -105,8 +116,17 @@
                 }, { source: "live-input" });
                 this.applyPortraitTransform(this.store.getState().profile.imageTransform);
             });
+            this.elements.characterImageFrame.addEventListener("change", event => {
+                this.store.update(state => {
+                    state.profile.imageFrame = event.target.value === "portrait" ? "portrait" : "square";
+                }, { source: "image-frame" });
+            });
             this.elements.resetImageTransformButton.addEventListener("click", () => {
                 this.store.update(state => { state.profile.imageTransform = { x: 0, y: 0, zoom: 1 }; });
+            });
+            global.addEventListener("resize", () => {
+                const profile = this.store.getState().profile;
+                this.applyPortraitTransform(this.hasCustomPortrait() ? profile.imageTransform : { x: 0, y: 0, zoom: 1 });
             });
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
@@ -138,6 +158,7 @@
             });
 
             this.elements.exportButton.addEventListener("click", () => this.exportCharacter());
+            this.elements.shareButton.addEventListener("click", () => this.shareCharacter());
             this.elements.importInput.addEventListener("change", event => this.importCharacter(event));
             this.elements.resetButton.addEventListener("click", () => this.resetCharacter());
         }
@@ -176,6 +197,19 @@
             this.renderBonds(formKey, this.getVisibleBonds(state, formKey));
             this.renderChecks(formKey, derived);
             this.renderHelp(formKey);
+            if (this.viewerMode) this.applyViewerRestrictions();
+        }
+
+        enableViewerMode() {
+            this.viewerMode = true;
+            this.applyViewerRestrictions();
+        }
+
+        applyViewerRestrictions() {
+            this.elements.appShell.dataset.viewer = "true";
+            this.elements.viewerBadge.hidden = false;
+            this.elements.appShell.querySelectorAll("input, textarea, select").forEach(element => { element.disabled = true; });
+            this.elements.appShell.querySelectorAll("button:not(.form-tab)").forEach(element => { element.disabled = true; });
         }
 
         refreshComputedOutputs() {
@@ -266,14 +300,17 @@
         }
 
         renderCharacterPortrait(profile) {
-            const url = String(profile.imageUrl || "").trim();
-            this.applyPortraitTransform(profile.imageTransform);
-            if (!url) {
-                this.elements.characterPortrait.removeAttribute("src");
-                this.elements.characterPortrait.hidden = true;
-                this.elements.characterPortraitPlaceholder.hidden = false;
-                return;
-            }
+            const customUrl = String(profile.imageUrl || "").trim();
+            const url = customUrl || DEFAULT_PORTRAIT_URL;
+            const hasCustomImage = Boolean(customUrl);
+            this.elements.characterPortrait.dataset.defaultPortrait = String(!hasCustomImage);
+            this.elements.characterPortrait.classList.toggle("is-adjustable", hasCustomImage);
+            this.elements.clearImageUrlButton.hidden = !hasCustomImage;
+            this.elements.portraitAdjustments.hidden = !hasCustomImage;
+            this.elements.portraitAdjustmentHelp.hidden = !hasCustomImage;
+            this.elements.portraitPreviewWrap.dataset.frame = profile.imageFrame === "portrait" ? "portrait" : "square";
+            this.syncInput(this.elements.characterImageFrame, profile.imageFrame);
+            this.applyPortraitTransform(hasCustomImage ? profile.imageTransform : { x: 0, y: 0, zoom: 1 });
             if (this.elements.characterPortrait.src !== url) {
                 this.elements.characterPortrait.hidden = true;
                 this.elements.characterPortraitPlaceholder.hidden = false;
@@ -304,17 +341,38 @@
         }
 
         applyPortraitTransform(transform) {
-            const x = this.clampNumber(transform?.x, -50, 50, 0);
-            const y = this.clampNumber(transform?.y, -50, 50, 0);
+            const x = this.clampNumber(transform?.x, -100, 100, 0);
+            const y = this.clampNumber(transform?.y, -100, 100, 0);
             const zoom = this.clampNumber(transform?.zoom, 1, 3, 1);
-            this.elements.characterPortrait.style.objectPosition = `${50 + x}% ${50 + y}%`;
-            this.elements.characterPortrait.style.transform = `scale(${zoom})`;
+            const geometry = this.getPortraitGeometry(zoom);
+            if (geometry) {
+                const offsetX = geometry.maxX * x / 100;
+                const offsetY = geometry.maxY * y / 100;
+                this.elements.characterPortrait.style.width = `${geometry.baseWidth}px`;
+                this.elements.characterPortrait.style.height = `${geometry.baseHeight}px`;
+                this.elements.characterPortrait.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) scale(${zoom})`;
+            }
             this.elements.characterImageZoom.value = String(zoom);
             this.elements.characterImageZoomValue.value = `${Math.round(zoom * 100)}%`;
         }
 
+        getPortraitGeometry(zoom) {
+            const image = this.elements.characterPortrait;
+            const bounds = this.elements.portraitPreviewWrap.getBoundingClientRect();
+            if (!image.naturalWidth || !image.naturalHeight || !bounds.width || !bounds.height) return null;
+            const coverScale = Math.max(bounds.width / image.naturalWidth, bounds.height / image.naturalHeight);
+            const baseWidth = image.naturalWidth * coverScale;
+            const baseHeight = image.naturalHeight * coverScale;
+            return {
+                baseWidth,
+                baseHeight,
+                maxX: Math.max(0, (baseWidth * zoom - bounds.width) / 2),
+                maxY: Math.max(0, (baseHeight * zoom - bounds.height) / 2)
+            };
+        }
+
         startPortraitDrag(event) {
-            if (this.elements.characterPortrait.hidden || event.button !== 0) return;
+            if (!this.hasCustomPortrait() || this.elements.characterPortrait.hidden || event.button !== 0) return;
             const transform = this.store.getState().profile.imageTransform;
             this.portraitDrag = {
                 pointerId: event.pointerId,
@@ -330,10 +388,15 @@
 
         movePortraitDrag(event) {
             if (!this.portraitDrag || this.portraitDrag.pointerId !== event.pointerId) return;
-            const bounds = this.elements.characterPortrait.parentElement.getBoundingClientRect();
             const transform = this.store.getState().profile.imageTransform;
-            transform.x = this.clampNumber(this.portraitDrag.imageX - (event.clientX - this.portraitDrag.startX) / bounds.width * 100, -50, 50, 0);
-            transform.y = this.clampNumber(this.portraitDrag.imageY - (event.clientY - this.portraitDrag.startY) / bounds.height * 100, -50, 50, 0);
+            const geometry = this.getPortraitGeometry(transform.zoom);
+            if (!geometry) return;
+            const startOffsetX = geometry.maxX * this.portraitDrag.imageX / 100;
+            const startOffsetY = geometry.maxY * this.portraitDrag.imageY / 100;
+            const offsetX = this.clampNumber(startOffsetX + event.clientX - this.portraitDrag.startX, -geometry.maxX, geometry.maxX, 0);
+            const offsetY = this.clampNumber(startOffsetY + event.clientY - this.portraitDrag.startY, -geometry.maxY, geometry.maxY, 0);
+            transform.x = geometry.maxX ? offsetX / geometry.maxX * 100 : 0;
+            transform.y = geometry.maxY ? offsetY / geometry.maxY * 100 : 0;
             this.applyPortraitTransform(transform);
         }
 
@@ -345,7 +408,7 @@
         }
 
         zoomPortraitWithWheel(event) {
-            if (this.elements.characterPortrait.hidden) return;
+            if (!this.hasCustomPortrait() || this.elements.characterPortrait.hidden) return;
             event.preventDefault();
             const direction = event.deltaY < 0 ? 0.1 : -0.1;
             this.store.update(state => {
@@ -355,8 +418,22 @@
         }
 
         constrainPortraitPosition(transform) {
-            transform.x = this.clampNumber(transform.x, -50, 50, 0);
-            transform.y = this.clampNumber(transform.y, -50, 50, 0);
+            transform.x = this.clampNumber(transform.x, -100, 100, 0);
+            transform.y = this.clampNumber(transform.y, -100, 100, 0);
+        }
+
+        hasCustomPortrait() {
+            return !this.viewerMode && Boolean(String(this.store.getState().profile.imageUrl || "").trim());
+        }
+
+        shareCharacter() {
+            const payload = ADOM.State.encodeShareState(this.store.getState());
+            const baseUrl = global.location.href.split("#")[0];
+            const shareUrl = `${baseUrl}#view=${payload}`;
+            global.prompt("Copia este enlace para compartir la ficha en modo de solo lectura:", shareUrl);
+            if (global.location.protocol === "file:") {
+                this.showToast("El enlace local solo funcionará donde exista esta misma ruta. Publícalo por HTTP/HTTPS para compartirlo con otras personas.", "info");
+            }
         }
 
         clampNumber(value, minimum, maximum, fallback) {
@@ -384,7 +461,7 @@
                 <div class="skill-block">
                     <div class="stat-row skill-main-row">
                         <span class="stat-code">↳</span>
-                        <input type="text" value="${escapeHtml(skill.label)}" aria-label="Nombre de habilidad" data-action="skill-label" data-index="${index}">
+                        <span class="skill-name">${escapeHtml(skill.label)}</span>
                         <input class="stat-value" type="number" min="0" step="1" value="${skill.value}" aria-label="Valor de ${escapeHtml(skill.label)}" data-action="skill-value" data-index="${index}">
                         <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">${diceIcon()}</button>
                     </div>
@@ -589,7 +666,6 @@
                 switch (action) {
                     case "attribute-descriptor": form.attributes[index].descriptor = value; break;
                     case "attribute-value": form.attributes[index].value = value; break;
-                    case "skill-label": form.skills[index].label = value; break;
                     case "skill-value": form.skills[index].value = value; break;
                     case "temporal": state.profile.temporalAspects[index] = value; break;
                     case "skill-talent": form.skills[index].talents[Number(target.dataset.talentIndex)] = value; break;
