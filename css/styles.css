@@ -564,6 +564,10 @@ input[type="checkbox"] {
     padding: 5px 7px;
 }
 
+#temporalAspectsList .repeatable-row input {
+    min-height: 30px;
+}
+
 .icon-button {
     display: grid;
     place-items: center;
