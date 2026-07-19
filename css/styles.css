@@ -1187,6 +1187,7 @@ input[type="checkbox"] {
     fill: none;
     stroke: currentColor;
     stroke-width: 1.75;
+    padding-right: 3px;
 }
 .dice-icon circle {
     fill: currentColor;
