@@ -103,6 +103,16 @@
         return Number.isFinite(parsed) ? parsed : fallback;
     }
 
+    function normalizeNonNegativeNumber(value, fallback) {
+        return Math.max(0, normalizeNumber(value, fallback));
+    }
+
+    function normalizeBooleanTrack(value, fallback, length) {
+        return Array.from({ length }, (_, index) => Boolean(
+            Array.isArray(value) ? value[index] : fallback[index]
+        ));
+    }
+
     function normalizeStringArray(value, fallback) {
         if (!Array.isArray(value)) {
             return clone(fallback);
@@ -118,7 +128,7 @@
             attributes: Array.isArray(form.attributes) ? form.attributes.map((item, index) => ({
                 ...clone(defaultForm.attributes[index] || { key: `attribute-${index}`, code: "ATR", descriptor: "", value: 0 }),
                 ...item,
-                value: normalizeNumber(item?.value, 0)
+                value: normalizeNonNegativeNumber(item?.value, 0)
             })) : clone(defaultForm.attributes),
             skills: Array.isArray(form.skills) ? form.skills.map((item, index) => {
                 const fallbackSkill = clone(defaultForm.skills[index] || { key: `skill-${index}`, label: "Habilidad", value: 0, talents: ["", ""] });
@@ -126,13 +136,13 @@
                 return {
                     ...fallbackSkill,
                     ...item,
-                    value: normalizeNumber(item?.value, 0),
+                    value: normalizeNonNegativeNumber(item?.value, 0),
                     talents: [String(talents?.[0] ?? ""), String(talents?.[1] ?? "")]
                 };
             }) : clone(defaultForm.skills),
-            drama: Array.isArray(form.drama) ? form.drama.slice(0, 5).map(Boolean) : clone(defaultForm.drama),
-            extraExperience: normalizeNumber(form.extraExperience, 0),
-            rd: normalizeNumber(form.rd, 0),
+            drama: normalizeBooleanTrack(form.drama, defaultForm.drama, 5),
+            extraExperience: normalizeNonNegativeNumber(form.extraExperience, 0),
+            rd: normalizeNonNegativeNumber(form.rd, 0),
             weapons: Array.isArray(form.weapons) ? form.weapons.map(item => ({
                 name: String(item?.name ?? ""),
                 damage: String(item?.damage ?? "")
@@ -140,23 +150,23 @@
             health: {
                 ...clone(defaultForm.health),
                 ...(form.health || {}),
-                currentResistance: normalizeNumber(form.health?.currentResistance, defaultForm.health.currentResistance),
-                lightWounds: Array.isArray(form.health?.lightWounds) ? form.health.lightWounds.slice(0, 2).map(Boolean) : clone(defaultForm.health.lightWounds),
-                severeWounds: Array.isArray(form.health?.severeWounds) ? form.health.severeWounds.slice(0, 2).map(Boolean) : clone(defaultForm.health.severeWounds)
+                currentResistance: normalizeNonNegativeNumber(form.health?.currentResistance, defaultForm.health.currentResistance),
+                lightWounds: normalizeBooleanTrack(form.health?.lightWounds, defaultForm.health.lightWounds, 2),
+                severeWounds: normalizeBooleanTrack(form.health?.severeWounds, defaultForm.health.severeWounds, 2)
             },
             bonds: Array.from({ length: 8 }, (_, index) => {
                 const item = Array.isArray(form.bonds) ? form.bonds[index] : null;
                 const fallback = defaultForm.bonds[index] || { name: "", level: 1, anchor: false };
                 return {
                     name: String(item?.name ?? fallback.name ?? ""),
-                    level: normalizeNumber(item?.level, fallback.level ?? 1),
+                    level: Math.max(1, normalizeNumber(item?.level, fallback.level ?? 1)),
                     anchor: Boolean(item?.anchor ?? fallback.anchor)
                 };
             }),
             ...(Object.prototype.hasOwnProperty.call(defaultForm, "arcaneSkills") ? {
                 arcaneSkills: Array.isArray(form.arcaneSkills) ? form.arcaneSkills.map(item => ({
                     name: String(item?.name ?? ""),
-                    value: normalizeNumber(item?.value, 0)
+                    value: normalizeNonNegativeNumber(item?.value, 0)
                 })) : clone(defaultForm.arcaneSkills)
             } : {})
         };
@@ -202,10 +212,8 @@
                 milestones: Array.from({ length: 6 }, (_, index) => String(candidate.profile?.milestones?.[index] ?? defaults.profile.milestones[index] ?? ""))
             },
             distortion: {
-                level: normalizeNumber(candidate.distortion?.level, defaults.distortion.level),
-                ecstasyTrack: Array.isArray(candidate.distortion?.ecstasyTrack)
-                    ? candidate.distortion.ecstasyTrack.slice(0, 10).map(Boolean)
-                    : clone(defaults.distortion.ecstasyTrack)
+                level: normalizeNonNegativeNumber(candidate.distortion?.level, defaults.distortion.level),
+                ecstasyTrack: normalizeBooleanTrack(candidate.distortion?.ecstasyTrack, defaults.distortion.ecstasyTrack, 10)
             },
             settings: {
                 baseDie: String(candidate.settings?.baseDie ?? defaults.settings.baseDie)

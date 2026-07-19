@@ -394,8 +394,7 @@
         renderChecks(formKey, derived) {
             const rows = [
                 ["Atributos", derived.attributesTotal],
-                ["Habilidades", derived.skillsTotal],
-                ["Talentos", derived.talentsTotal]
+                ["Habilidades", derived.skillsTotal]
             ];
             if (formKey === "human") {
                 rows.push(["Lazos", derived.bondsTotal]);
