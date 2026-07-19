@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.2.0
+// @version      0.3.4
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 //
 // Ficha externa local:
@@ -27,7 +27,7 @@
      */
 
     const PROTOCOL = Object.freeze({
-        VERSION: 1,
+        VERSION: 2,
 
         CHANNELS: Object.freeze({
             REQUEST: "adom-sheet:bridge-request",
@@ -40,7 +40,8 @@
         }),
 
         MESSAGE_TYPES: Object.freeze({
-            CHAT_COMMAND: "CHAT_COMMAND"
+            CHAT_COMMAND: "CHAT_COMMAND",
+            DAMAGE_ROLL: "DAMAGE_ROLL"
         }),
 
         RESPONSE_TYPES: Object.freeze({
@@ -58,6 +59,7 @@
         ROLL20_HOST: "app.roll20.net",
         REQUEST_MAX_AGE_MS: 30_000,
         CHAT_INPUT_TIMEOUT_MS: 10_000,
+        ROLL_RESULT_TIMEOUT_MS: 12_000,
         MAX_PROCESSED_REQUESTS: 500
     });
 
@@ -270,6 +272,9 @@
             case PROTOCOL.MESSAGE_TYPES.CHAT_COMMAND:
                 return handleChatCommand(message);
 
+            case PROTOCOL.MESSAGE_TYPES.DAMAGE_ROLL:
+                return handleDamageRoll(message);
+
             default:
                 return createErrorResponse({
                     requestId: message.id,
@@ -314,6 +319,43 @@
 
     /*
      * ============================================================
+     * HANDLER: DAMAGE_ROLL
+     * ============================================================
+     */
+
+    async function handleDamageRoll(message) {
+        const skillValue = normalizeModifier(message.payload?.skillValue);
+        const attributeValue = normalizeModifier(message.payload?.attributeValue);
+
+        if (skillValue === null || attributeValue === null) {
+            return createErrorResponse({
+                requestId: message.id,
+                errorCode: "INVALID_DAMAGE_ROLL",
+                error: "La habilidad o el atributo de la tirada no son válidos."
+            });
+        }
+
+        const command = `/roll {3d10dh1}kh1${formatRollModifier(skillValue, "Habilidad")}${formatRollModifier(attributeValue, "Atributo")}`;
+        let rollWaiter = null;
+
+        try {
+            await sendCommandToRoll20Chat(command, () => {
+                rollWaiter = createRollResultWaiter();
+            });
+            const dice = await rollWaiter.promise;
+
+            return createSuccessResponse({
+                requestId: message.id,
+                data: { dice },
+                message: "Tirada recibida desde Roll20."
+            });
+        } finally {
+            rollWaiter?.cancel();
+        }
+    }
+
+    /*
+     * ============================================================
      * ADAPTADOR DEL CHAT DE ROLL20
      * ============================================================
      *
@@ -324,7 +366,7 @@
      * estas funciones sin tocar el protocolo ni la ficha externa.
      */
 
-    async function sendCommandToRoll20Chat(command) {
+    async function sendCommandToRoll20Chat(command, beforeSend = null) {
         const chatInput = await waitForElement(
             findRoll20ChatInput,
             CONFIG.CHAT_INPUT_TIMEOUT_MS
@@ -344,6 +386,7 @@
         );
 
         dispatchInputEvents(chatInput);
+        beforeSend?.();
         dispatchEnterKeyEvents(chatInput);
     }
 
@@ -435,6 +478,101 @@
                 eventOptions
             )
         );
+    }
+
+    function createRollResultWaiter() {
+        let completed = false;
+        let timeoutId = null;
+        let settleTimeoutId = null;
+        let observer = null;
+        const knownRollMessages = new Set(document.querySelectorAll(".message.rollresult.you"));
+
+        const finish = () => {
+            if (completed) return;
+            completed = true;
+            observer?.disconnect();
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+            if (settleTimeoutId !== null) window.clearTimeout(settleTimeoutId);
+        };
+
+        const promise = new Promise((resolve, reject) => {
+            const inspect = () => {
+                const dice = findFreshRollDice(knownRollMessages);
+                if (!dice || completed) return;
+                finish();
+                resolve(dice);
+            };
+
+            const scheduleInspect = () => {
+                if (completed) return;
+                if (settleTimeoutId !== null) window.clearTimeout(settleTimeoutId);
+                settleTimeoutId = window.setTimeout(inspect, 75);
+            };
+
+            observer = new MutationObserver(scheduleInspect);
+            observer.observe(document.documentElement, {
+                attributes: true,
+                attributeFilter: ["class"],
+                childList: true,
+                subtree: true
+            });
+
+            timeoutId = window.setTimeout(() => {
+                if (completed) return;
+                finish();
+                reject(new Error("Roll20 no devolvió una tirada con tres dados legibles."));
+            }, CONFIG.ROLL_RESULT_TIMEOUT_MS);
+
+            scheduleInspect();
+        });
+
+        return {
+            promise,
+            cancel() {
+                if (completed) return;
+                finish();
+            }
+        };
+    }
+
+    function findFreshRollDice(knownRollMessages) {
+        const messages = document.querySelectorAll(".message.rollresult.you");
+
+        for (const message of messages) {
+            if (knownRollMessages.has(message)) continue;
+
+            const formula = message.querySelector(".formula:not(.formattedformula)")?.textContent || "";
+            if (!formula.includes("{3d10dh1}kh1")) continue;
+
+            const diceGroup = message.querySelector(
+                ".formula.formattedformula .dicegrouping[data-groupindex='0']"
+            );
+            const diceElements = Array.from(
+                diceGroup?.querySelectorAll(".diceroll.d10[data-origindex] .didroll") || []
+            );
+            const dice = extractDiceElements(diceElements);
+            if (dice) return dice;
+        }
+
+        return null;
+    }
+
+    function extractDiceElements(elements) {
+        const dice = elements
+            .map(element => Number.parseInt(element.textContent, 10))
+            .filter(value => Number.isInteger(value) && value >= 1 && value <= 10);
+        return dice.length === 3 ? dice : null;
+    }
+
+    function normalizeModifier(value) {
+        const number = Number(value);
+        if (!Number.isFinite(number) || Math.abs(number) > 9999) return null;
+        return Math.trunc(number);
+    }
+
+    function formatRollModifier(value, label) {
+        const sign = value < 0 ? "-" : "+";
+        return `${sign}${Math.abs(value)}[${label}]`;
     }
 
     /*

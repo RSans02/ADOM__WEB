@@ -20,14 +20,14 @@ La ficha utiliza el protocolo ya validado:
 
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
-- Tipo de mensaje: `CHAT_COMMAND`
-- Versión del protocolo: `1`
+- Tipos de mensaje: `CHAT_COMMAND` y `DAMAGE_ROLL`
+- Versión del protocolo: `2`
 
 El userscript debe incluir:
 
 ```javascript
-// @match        file:///C:/ADOM__WEB/*
-// @match        https://adom-web.vercel.app/*
+// @match        https://adom-web.vercel.app
+// @match        http://127.0.0.1:5500/index.html
 ```
 
 ## Funciones incluidas
@@ -62,7 +62,7 @@ Las habilidades usan:
 {3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-Los atributos conservan internamente el dado base existente. Para el daño, la ficha genera una única tirada de `3d10`, ordena sus resultados como `m`, `c` y `M`, calcula la tirada y el daño, y envía el resultado al chat mediante el bridge existente.
+Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat, la ficha los ordena como `m`, `c` y `M`, calcula el daño y después envía al chat `Daño -> resultado`.
 
 ## Estructura
 

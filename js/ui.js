@@ -878,30 +878,26 @@
             const attributeIndex = await this.chooseAttribute(form.attributes, form.skills[skillIndex].label);
             if (attributeIndex === null) return;
 
-            const dice = this.rollThreeD10();
+            const skill = form.skills[skillIndex];
+            const attribute = form.attributes[attributeIndex];
+            let dice;
+            try {
+                dice = await this.bridge.rollDamageDice(
+                    ADOM.Calculations.number(skill.value),
+                    ADOM.Calculations.number(attribute.value)
+                );
+            } catch (error) {
+                this.showToast(error.message, "error");
+                return;
+            }
+
             const damage = ADOM.Calculations.calculateWeaponDamage(formula, dice);
             if (!damage) {
                 this.showToast("No se pudo calcular el daño. Revisa la fórmula.", "error");
                 return;
             }
-            const skill = form.skills[skillIndex];
-            const attribute = form.attributes[attributeIndex];
-            const modifier = ADOM.Calculations.number(skill.value) + ADOM.Calculations.number(attribute.value);
             const safeWeaponName = this.sanitizeChatText(weapon.name || "Ataque");
-            const checkTotal = damage.values.c + modifier;
-            const diceText = `${dice.join(", ")} (m=${damage.values.m}, c=${damage.values.c}, M=${damage.values.M})`;
-            const command = `Dados -> ${diceText} | Tirada -> [[${damage.values.c}+${modifier}]] | Daño -> ${damage.total}`;
-            await this.sendRollCommand(command, safeWeaponName);
-        }
-
-        rollThreeD10() {
-            return Array.from({ length: 3 }, () => {
-                if (!global.crypto?.getRandomValues) return Math.floor(Math.random() * 10) + 1;
-                const maximum = 0x100000000 - (0x100000000 % 10);
-                const values = new Uint32Array(1);
-                do global.crypto.getRandomValues(values); while (values[0] >= maximum);
-                return values[0] % 10 + 1;
-            });
+            await this.sendRollCommand(`Daño -> ${damage.total}`, safeWeaponName);
         }
 
         sanitizeChatText(value) {
