@@ -80,7 +80,7 @@
 
         collectElements() {
             const ids = [
-                "appShell", "characterManager", "characterSelector", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
+                "appShell", "characterManager", "characterSelector", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
@@ -206,6 +206,9 @@
 
             this.elements.exportButton.addEventListener("click", () => this.exportCharacter());
             this.elements.shareButton.addEventListener("click", () => this.shareCharacter());
+            this.elements.optionsMenu.addEventListener("click", event => {
+                if (event.target.closest("button")) global.setTimeout(() => this.elements.optionsMenu.removeAttribute("open"), 0);
+            });
             this.elements.importInput.addEventListener("change", event => this.importCharacter(event));
             this.elements.excelImportInput.addEventListener("change", event => this.importExcelCharacter(event));
             this.elements.resetButton.addEventListener("click", () => this.resetCharacter());
@@ -1364,6 +1367,7 @@
                     this.showToast(`No se pudo importar el archivo: ${error.message}`, "error");
                 } finally {
                     event.target.value = "";
+                    this.elements.optionsMenu.removeAttribute("open");
                 }
             };
             reader.onerror = () => this.showToast("No se pudo leer el archivo seleccionado.", "error");
@@ -1382,6 +1386,7 @@
                 this.showToast(`No se pudo importar el Excel: ${error.message}`, "error");
             } finally {
                 event.target.value = "";
+                this.elements.optionsMenu.removeAttribute("open");
             }
         }
 

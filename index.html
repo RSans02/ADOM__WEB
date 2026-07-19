@@ -38,17 +38,22 @@
             <div class="topbar-actions">
                 <span class="viewer-badge" id="viewerBadge" hidden>Solo lectura</span>
                 <span class="save-status" id="saveStatus" data-state="saved">Guardado</span>
-                <button class="button button-primary" id="shareButton" type="button">Compartir</button>
-                <button class="button button-secondary" id="exportButton" type="button">Exportar JSON</button>
-                <label class="button button-secondary file-button">
-                    Importar JSON
-                    <input id="importInput" type="file" accept="application/json,.json">
-                </label>
-                <label class="button button-secondary file-button">
-                    Importar Excel
-                    <input id="excelImportInput" type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx">
-                </label>
-                <button class="button button-danger button-quiet" id="resetButton" type="button">Restablecer</button>
+                <details class="options-menu" id="optionsMenu">
+                    <summary class="button button-secondary">Opciones</summary>
+                    <div class="options-menu-panel">
+                        <button class="button button-primary" id="shareButton" type="button">Compartir</button>
+                        <button class="button button-secondary" id="exportButton" type="button">Exportar JSON</button>
+                        <label class="button button-secondary file-button">
+                            Importar JSON
+                            <input id="importInput" type="file" accept="application/json,.json">
+                        </label>
+                        <label class="button button-secondary file-button">
+                            Importar Excel
+                            <input id="excelImportInput" type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx">
+                        </label>
+                        <button class="button button-danger button-quiet options-reset-button" id="resetButton" type="button">Restablecer</button>
+                    </div>
+                </details>
             </div>
         </header>
 
