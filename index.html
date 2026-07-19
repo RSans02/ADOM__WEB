@@ -158,27 +158,29 @@
                             <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje" draggable="false" hidden>
                             <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A</div>
                         </div>
-                        <label class="field portrait-url-field">
-                            <span>URL pública de la imagen</span>
-                            <div class="portrait-url-row">
-                                <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
-                                <button id="applyImageUrlButton" class="button button-secondary" type="button">Añadir</button>
-                                <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button" hidden>Quitar</button>
+                        <div class="portrait-editor-controls" id="portraitEditorControls" hidden>
+                            <label class="field portrait-url-field">
+                                <span>URL pública de la imagen</span>
+                                <div class="portrait-url-row">
+                                    <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
+                                    <button id="applyImageUrlButton" class="button button-secondary" type="button">Añadir</button>
+                                    <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button" hidden>Quitar</button>
+                                </div>
+                                <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
+                            </label>
+                            <div class="portrait-adjustments" id="portraitAdjustments" hidden>
+                                <label for="characterImageFrame">Marco</label>
+                                <select id="characterImageFrame" class="portrait-frame-select">
+                                    <option value="square">Cuadrado</option>
+                                    <option value="portrait">Vertical</option>
+                                </select>
+                                <label for="characterImageZoom">Zoom</label>
+                                <input id="characterImageZoom" type="range" min="1" max="3" step="0.05" value="1">
+                                <output id="characterImageZoomValue" for="characterImageZoom">100%</output>
+                                <button id="resetImageTransformButton" class="button button-secondary" type="button">Centrar</button>
                             </div>
-                            <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
-                        </label>
-                        <div class="portrait-adjustments" id="portraitAdjustments" hidden>
-                            <label for="characterImageFrame">Marco</label>
-                            <select id="characterImageFrame" class="portrait-frame-select">
-                                <option value="square">Cuadrado</option>
-                                <option value="portrait">Vertical</option>
-                            </select>
-                            <label for="characterImageZoom">Zoom</label>
-                            <input id="characterImageZoom" type="range" min="1" max="3" step="0.05" value="1">
-                            <output id="characterImageZoomValue" for="characterImageZoom">100%</output>
-                            <button id="resetImageTransformButton" class="button button-secondary" type="button">Centrar</button>
+                            <small class="portrait-adjustment-help" id="portraitAdjustmentHelp" hidden>Arrastra la imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
                         </div>
-                        <small class="portrait-adjustment-help" id="portraitAdjustmentHelp" hidden>Arrastra la imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
                     </section>
                 </div>
 

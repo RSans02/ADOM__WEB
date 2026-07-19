@@ -44,6 +44,7 @@
             this.store = store;
             this.bridge = bridge;
             this.portraitDrag = null;
+            this.portraitEditing = false;
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -61,7 +62,7 @@
         collectElements() {
             const ids = [
                 "appShell", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "resetButton",
-                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
+                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
@@ -77,6 +78,10 @@
             this.elements.ecstasyTab.addEventListener("click", () => this.setActiveForm("ecstasy"));
 
             this.bindTextInput(this.elements.characterName, state => state.profile.name, (state, value) => { state.profile.name = value; });
+            this.elements.portraitPreviewWrap.addEventListener("dblclick", event => {
+                event.preventDefault();
+                this.togglePortraitEditing();
+            });
             this.elements.applyImageUrlButton.addEventListener("click", () => this.applyCharacterImageUrl());
             this.elements.clearImageUrlButton.addEventListener("click", () => this.clearCharacterImageUrl());
             this.elements.characterImageUrl.addEventListener("keydown", event => {
@@ -109,6 +114,7 @@
             this.elements.characterPortrait.addEventListener("pointercancel", event => this.finishPortraitDrag(event));
             this.elements.characterPortrait.addEventListener("wheel", event => this.zoomPortraitWithWheel(event), { passive: false });
             this.elements.characterImageZoom.addEventListener("input", event => {
+                if (!this.canEditPortrait()) return;
                 const zoom = this.clampNumber(event.target.value, 1, 3, 1);
                 this.store.update(state => {
                     state.profile.imageTransform.zoom = zoom;
@@ -117,11 +123,13 @@
                 this.applyPortraitTransform(this.store.getState().profile.imageTransform);
             });
             this.elements.characterImageFrame.addEventListener("change", event => {
+                if (!this.canEditPortrait()) return;
                 this.store.update(state => {
                     state.profile.imageFrame = event.target.value === "portrait" ? "portrait" : "square";
                 }, { source: "image-frame" });
             });
             this.elements.resetImageTransformButton.addEventListener("click", () => {
+                if (!this.canEditPortrait()) return;
                 this.store.update(state => { state.profile.imageTransform = { x: 0, y: 0, zoom: 1 }; });
             });
             global.addEventListener("resize", () => {
@@ -201,6 +209,8 @@
 
         enableViewerMode() {
             this.viewerMode = true;
+            this.portraitEditing = false;
+            this.renderCharacterPortrait(this.store.getState().profile);
             this.applyViewerRestrictions();
         }
 
@@ -301,11 +311,24 @@
             const customUrl = String(profile.imageUrl || "").trim();
             const url = customUrl || DEFAULT_PORTRAIT_URL;
             const hasCustomImage = Boolean(customUrl);
+            const editing = this.canEditPortrait();
             this.elements.characterPortrait.dataset.defaultPortrait = String(!hasCustomImage);
-            this.elements.characterPortrait.classList.toggle("is-adjustable", hasCustomImage);
-            this.elements.clearImageUrlButton.hidden = !hasCustomImage;
-            this.elements.portraitAdjustments.hidden = !hasCustomImage;
-            this.elements.portraitAdjustmentHelp.hidden = !hasCustomImage;
+            this.elements.characterPortrait.classList.toggle("is-adjustable", hasCustomImage && editing);
+            this.elements.portraitPreviewWrap.classList.toggle("is-editing", editing);
+            if (this.viewerMode) {
+                this.elements.portraitPreviewWrap.removeAttribute("title");
+            } else {
+                this.elements.portraitPreviewWrap.title = editing
+                    ? "Doble clic para bloquear la foto"
+                    : "Doble clic para editar la foto";
+            }
+            this.elements.portraitEditorControls.hidden = !editing;
+            this.elements.portraitEditorControls.querySelectorAll("input, select, button").forEach(element => {
+                element.disabled = !editing;
+            });
+            this.elements.clearImageUrlButton.hidden = !hasCustomImage || !editing;
+            this.elements.portraitAdjustments.hidden = !hasCustomImage || !editing;
+            this.elements.portraitAdjustmentHelp.hidden = !hasCustomImage || !editing;
             this.elements.portraitPreviewWrap.dataset.frame = profile.imageFrame === "portrait" ? "portrait" : "square";
             this.syncInput(this.elements.characterImageFrame, profile.imageFrame);
             this.applyPortraitTransform(hasCustomImage ? profile.imageTransform : { x: 0, y: 0, zoom: 1 });
@@ -317,6 +340,7 @@
         }
 
         applyCharacterImageUrl() {
+            if (!this.canEditPortrait()) return;
             const url = this.elements.characterImageUrl.value.trim();
             if (url && !/^https?:\/\//i.test(url)) {
                 this.showToast("La imagen debe usar una URL pública que empiece por http:// o https://.", "error");
@@ -331,6 +355,7 @@
         }
 
         clearCharacterImageUrl() {
+            if (!this.canEditPortrait()) return;
             this.elements.characterImageUrl.value = "";
             this.store.update(state => {
                 state.profile.imageUrl = "";
@@ -370,7 +395,7 @@
         }
 
         startPortraitDrag(event) {
-            if (!this.hasCustomPortrait() || this.elements.characterPortrait.hidden || event.button !== 0) return;
+            if (!this.canEditPortrait() || !this.hasCustomPortrait() || this.elements.characterPortrait.hidden || event.button !== 0) return;
             const transform = this.store.getState().profile.imageTransform;
             this.portraitDrag = {
                 pointerId: event.pointerId,
@@ -406,7 +431,7 @@
         }
 
         zoomPortraitWithWheel(event) {
-            if (!this.hasCustomPortrait() || this.elements.characterPortrait.hidden) return;
+            if (!this.canEditPortrait() || !this.hasCustomPortrait() || this.elements.characterPortrait.hidden) return;
             event.preventDefault();
             const direction = event.deltaY < 0 ? 0.1 : -0.1;
             this.store.update(state => {
@@ -421,7 +446,21 @@
         }
 
         hasCustomPortrait() {
-            return !this.viewerMode && Boolean(String(this.store.getState().profile.imageUrl || "").trim());
+            return Boolean(String(this.store.getState().profile.imageUrl || "").trim());
+        }
+
+        canEditPortrait() {
+            return !this.viewerMode && this.portraitEditing;
+        }
+
+        togglePortraitEditing() {
+            if (this.viewerMode) return;
+            this.portraitEditing = !this.portraitEditing;
+            if (!this.portraitEditing) {
+                this.portraitDrag = null;
+                this.elements.characterPortrait.classList.remove("is-dragging");
+            }
+            this.renderCharacterPortrait(this.store.getState().profile);
         }
 
         shareCharacter() {

@@ -1305,6 +1305,17 @@ input[type="checkbox"] {
     font-size: 4rem;
     font-weight: 800;
 }
+.portrait-preview-wrap.is-editing {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
+}
+.portrait-editor-controls {
+    display: grid;
+    gap: 14px;
+}
+.portrait-editor-controls[hidden] {
+    display: none;
+}
 .portrait-url-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1374,7 +1385,14 @@ input[type="checkbox"] {
     stroke: none;
 }
 
+#milestonesList {
+    gap: 5px;
+    display: flex;
+    flex-direction: column;
+}
+
 @media (max-width: 650px) {
     .character-portrait-card { grid-template-columns: 92px minmax(0, 1fr); }
     .portrait-preview-wrap { width: 92px; }
+    .portrait-editor-controls { grid-column: 1 / -1; }
 }

@@ -93,6 +93,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 
 - Los lazos vacíos no suman experiencia.
 - La ficha admite una imagen de personaje mediante URL pública directa, con encuadre por arrastre y zoom persistente.
+- Los controles de la imagen permanecen bloqueados y ocultos hasta hacer doble clic sobre la foto; otro doble clic vuelve a bloquearlos.
 - El marco de la imagen puede mostrarse cuadrado o en formato vertical 3:4.
 - Los colores principales y de fondo de la forma humana y la forma de éxtasis se pueden configurar por separado.
 - El botón Compartir genera un enlace de solo lectura sin edición ni tiradas. Para usarlo entre equipos, la aplicación debe estar publicada por HTTP/HTTPS.
