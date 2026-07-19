@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 19,
+            schemaVersion: 20,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -303,6 +303,16 @@
         const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
         const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
         const activeForm = candidate.activeForm === "ecstasy" ? "ecstasy" : "human";
+        const sharedAttributeDescriptors = new Map(
+            (activeForm === "ecstasy" ? ecstasy : human).attributes.map(attribute => [attribute.key, attribute.descriptor])
+        );
+        [human, ecstasy].forEach(form => {
+            form.attributes.forEach(attribute => {
+                if (sharedAttributeDescriptors.has(attribute.key)) {
+                    attribute.descriptor = String(sharedAttributeDescriptors.get(attribute.key) ?? "");
+                }
+            });
+        });
         const sharedExtraExperience = Math.max(-1, normalizeNumber(
             candidate[activeForm]?.extraExperience
                 ?? candidate.human?.extraExperience
@@ -325,7 +335,7 @@
         }
 
         return {
-            schemaVersion: 19,
+            schemaVersion: 20,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,

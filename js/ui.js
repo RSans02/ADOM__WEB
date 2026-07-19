@@ -86,7 +86,7 @@
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
-                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "sendCommandButton", "connectionStatus",
+                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus",
                 "bridgeMessage", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
@@ -186,6 +186,11 @@
             });
 
             this.elements.sendCommandButton.addEventListener("click", () => this.sendManualCommand());
+            this.elements.resetManualCommandButton.addEventListener("click", () => {
+                this.elements.manualCommand.value = "/roll {3d10dh1}kh1";
+                this.elements.manualCommand.title = this.elements.manualCommand.value;
+                this.elements.manualCommand.focus();
+            });
             this.elements.manualCommand.addEventListener("keydown", event => {
                 if (event.key === "Enter") {
                     event.preventDefault();
@@ -870,7 +875,7 @@
         renderHelp(formKey) {
             this.elements.formHelp.innerHTML = formKey === "human"
                 ? `<h3>Forma humana</h3><p>La experiencia se calcula con los mismos costes de la hoja: atributos × 15, habilidades × 5, talentos × 10 y lazos × 5.</p><p>Los campos compartidos —nombre, concepto, complicación, aspectos temporales, hitos y distorsión— se conservan al cambiar de forma. La casilla «Experiencia» es un recurso manual y no altera la comprobación de puntos, igual que en el Excel.</p>`
-                : `<h3>Forma de éxtasis</h3><p>Cada punto de distorsión resta 30 XP al valor de comparación. Los lazos de la forma humana se vuelven a sumar para que el número ajustado pueda compararse con la ficha humana.</p><p>Los cambios de atributos y habilidades entre formas son independientes, igual que en el documento original. La casilla «Experiencia» se guarda como recurso manual y no altera la comprobación.</p>`;
+                : `<h3>Forma de éxtasis</h3><p>Cada punto de distorsión resta 30 XP al valor de comparación. Los lazos de la forma humana se vuelven a sumar para que el número ajustado pueda compararse con la ficha humana.</p><p>Los descriptores de atributos se comparten entre formas; sus valores, las habilidades y los talentos permanecen independientes. La casilla «Experiencia» se guarda como recurso manual y no altera la comprobación.</p>`;
         }
 
         bindDynamicContainer(container) {
@@ -904,7 +909,14 @@
                     ? state.human.bonds.findIndex(bond => bond.anchor)
                     : index;
                 switch (action) {
-                    case "attribute-descriptor": form.attributes[index].descriptor = value; break;
+                    case "attribute-descriptor": {
+                        const attributeKey = form.attributes[index]?.key;
+                        [state.human, state.ecstasy].forEach(targetForm => {
+                            const attribute = targetForm.attributes.find(item => item.key === attributeKey);
+                            if (attribute) attribute.descriptor = value;
+                        });
+                        break;
+                    }
                     case "attribute-value": form.attributes[index].value = value; break;
                     case "skill-value": form.skills[index].value = value; break;
                     case "temporal": state.profile.temporalAspects[index] = value; break;

@@ -1126,7 +1126,19 @@ input[type="checkbox"] {
 .command-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "command send"
+        "base .";
     gap: 7px;
+}
+
+#manualCommand { grid-area: command; }
+#sendCommandButton { grid-area: send; }
+#resetManualCommandButton {
+    grid-area: base;
+    justify-self: start;
+    min-height: 30px;
+    padding: 5px 12px;
 }
 
 .bridge-message {
