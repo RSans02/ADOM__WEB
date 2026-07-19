@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 10,
+            schemaVersion: 12,
             activeForm: "human",
             profile: {
                 name: "Lluvia Clara",
@@ -97,7 +97,7 @@
                 drama: [true, true, true, true, true],
                 extraExperience: 0,
                 rd: 0,
-                weapons: [{ name: "", damage: "" }],
+                weapons: [],
                 health: {
                     currentResistance: 12,
                     lightWounds: [false, false],
@@ -149,6 +149,21 @@
         return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : fallback;
     }
 
+    function normalizeDamageFormula(value) {
+        const formula = String(value ?? "").trim();
+        const match = /^([mMc]+)([+-])(\d+)$/.exec(formula);
+        if (!match || formula.length > 64) return "";
+        const bonus = Number(`${match[2]}${match[3]}`);
+        return Number.isSafeInteger(bonus) ? formula : "";
+    }
+
+    function normalizeWeapons(value) {
+        return Array.isArray(value) ? value.map(item => ({
+            name: String(item?.name ?? ""),
+            damage: normalizeDamageFormula(item?.damage)
+        })) : [];
+    }
+
     function mergeForm(defaultForm, incomingForm) {
         const form = incomingForm && typeof incomingForm === "object" ? incomingForm : {};
         const incomingBonds = Array.isArray(form.bonds) ? form.bonds : [];
@@ -173,10 +188,9 @@
             drama: normalizeBooleanTrack(form.drama, defaultForm.drama, 5),
             extraExperience: normalizeNonNegativeNumber(form.extraExperience, 0),
             rd: normalizeNonNegativeNumber(form.rd, 0),
-            weapons: Array.isArray(form.weapons) ? form.weapons.map(item => ({
-                name: String(item?.name ?? ""),
-                damage: String(item?.damage ?? "")
-            })) : clone(defaultForm.weapons),
+            weapons: defaultForm.weapons.length === 0
+                ? []
+                : (Array.isArray(form.weapons) ? normalizeWeapons(form.weapons) : clone(defaultForm.weapons)),
             health: {
                 ...clone(defaultForm.health),
                 ...(form.health || {}),
@@ -230,8 +244,18 @@
             return defaults;
         }
 
+        const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
+        const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
+        if (normalizeNumber(candidate.schemaVersion, 0) < 12) {
+            normalizeWeapons(candidate.ecstasy?.weapons).forEach(weapon => {
+                if (!weapon.name.trim() && !weapon.damage) return;
+                const duplicate = human.weapons.some(item => item.name === weapon.name && item.damage === weapon.damage);
+                if (!duplicate) human.weapons.push(weapon);
+            });
+        }
+
         return {
-            schemaVersion: 10,
+            schemaVersion: 12,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
             profile: {
                 name: String(candidate.profile?.name ?? defaults.profile.name),
@@ -258,8 +282,8 @@
                     ecstasy: normalizeColor(candidate.settings?.formBackgrounds?.ecstasy, defaults.settings.formBackgrounds.ecstasy)
                 }
             },
-            human: normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human))),
-            ecstasy: normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)))
+            human,
+            ecstasy
         };
     }
 

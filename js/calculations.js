@@ -31,6 +31,33 @@
         return 4 + (xp - 800) / 800;
     }
 
+    function isDamageFormulaInput(value) {
+        const formula = String(value ?? "");
+        return formula === "" || (formula.length <= 64 && /^[mMc]+(?:[+-]\d*)?$/.test(formula));
+    }
+
+    function parseDamageFormula(value) {
+        const formula = String(value ?? "").trim();
+        const match = /^([mMc]+)([+-])(\d+)$/.exec(formula);
+        if (!match || formula.length > 64) return null;
+        const bonus = Number(`${match[2]}${match[3]}`);
+        if (!Number.isSafeInteger(bonus)) return null;
+        return { formula, symbols: [...match[1]], bonus };
+    }
+
+    function calculateWeaponDamage(formula, dice) {
+        const parsed = parseDamageFormula(formula);
+        if (!parsed || !Array.isArray(dice) || dice.length !== 3) return null;
+        const sortedDice = dice.map(number).sort((a, b) => a - b);
+        if (sortedDice.some(die => !Number.isInteger(die) || die < 1 || die > 10)) return null;
+        const values = { m: sortedDice[0], c: sortedDice[1], M: sortedDice[2] };
+        const selectedDice = parsed.symbols.map(symbol => values[symbol]);
+        const diceTotal = selectedDice.reduce((total, die) => total + die, 0);
+        const total = diceTotal + parsed.bonus;
+        if (!Number.isSafeInteger(total)) return null;
+        return { ...parsed, sortedDice, values, selectedDice, diceTotal, total };
+    }
+
     function deriveForm(state, formKey) {
         const form = state[formKey];
         const attributesTotal = sum(form.attributes, item => item.value);
@@ -85,6 +112,9 @@
         number,
         countTalents,
         calculateTier,
+        isDamageFormulaInput,
+        parseDamageFormula,
+        calculateWeaponDamage,
         deriveForm
     });
 })(window);

@@ -95,6 +95,8 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - El marco de la imagen puede mostrarse cuadrado o en formato vertical 3:4.
 - Los colores principales y de fondo de la forma humana y la forma de éxtasis se pueden configurar por separado.
 - El botón Compartir genera un enlace de solo lectura sin edición ni tiradas. Para usarlo entre equipos, la aplicación debe estar publicada por HTTP/HTTPS.
+- El daño usa fórmulas como `MMm+5`: `m`, `c` y `M` representan el dado menor, central y mayor de una única tirada de 3d10.
+- Armas y ataques son compartidos entre la forma humana y la forma de éxtasis.
 - La forma humana conserva 8 lazos. Éxtasis refleja el lazo humano marcado como ancla; si no hay ancla, no muestra ninguno.
 - Los botones de tirada muestran un icono de dado.
 

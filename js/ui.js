@@ -66,7 +66,7 @@
                 "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
-                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "baseDieInput", "manualCommand", "sendCommandButton", "connectionStatus",
+                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "manualCommand", "sendCommandButton", "connectionStatus",
                 "bridgeMessage", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
@@ -130,7 +130,6 @@
             });
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
-            this.bindTextInput(this.elements.baseDieInput, state => state.settings.baseDie, (state, value) => { state.settings.baseDie = value; });
             this.elements.humanColorInput.addEventListener("input", event => this.setFormColor("human", event.target.value));
             this.elements.ecstasyColorInput.addEventListener("input", event => this.setFormColor("ecstasy", event.target.value));
             this.elements.humanBackgroundInput.addEventListener("input", event => this.setFormBackground("human", event.target.value));
@@ -143,7 +142,7 @@
             });
 
             this.elements.addWeaponButton.addEventListener("click", () => {
-                this.store.update(state => state[state.activeForm].weapons.push({ name: "", damage: "" }));
+                this.store.update(state => state.human.weapons.push({ name: "", damage: "" }));
             });
             this.elements.addArcaneSkillButton.addEventListener("click", () => {
                 this.store.update(state => state.ecstasy.arcaneSkills.push({ name: "", value: 1 }));
@@ -191,7 +190,7 @@
             this.renderDrama(form.drama);
             this.renderMilestones(state.profile.milestones);
             this.renderHealth(form, derived);
-            this.renderCombat(form, derived);
+            this.renderCombat(form, state.human.weapons, derived);
             this.renderDistortion(state.distortion, derived);
             this.renderArcane(formKey, form, derived);
             this.renderBonds(formKey, this.getVisibleBonds(state, formKey));
@@ -264,7 +263,6 @@
             this.syncInput(this.elements.characterConcept, state.profile.concept);
             this.syncInput(this.elements.characterComplication, state.profile.complication);
             this.syncInput(this.elements.extraExperience, form.extraExperience);
-            this.syncInput(this.elements.baseDieInput, state.settings.baseDie);
             this.syncInput(this.elements.humanColorInput, state.settings.formColors.human);
             this.syncInput(this.elements.ecstasyColorInput, state.settings.formColors.ecstasy);
             this.syncInput(this.elements.humanBackgroundInput, state.settings.formBackgrounds.human);
@@ -522,7 +520,7 @@
             this.bindDynamicContainer(this.elements.healthPanel);
         }
 
-        renderCombat(form, derived) {
+        renderCombat(form, weapons, derived) {
             this.elements.combatPanel.innerHTML = `
                 <div class="derived-row"><span>Iniciativa</span><strong class="derived-value" data-output="initiative">${derived.initiative}</strong></div>
                 <div class="derived-row"><span>Daño a distancia</span><strong class="derived-value" data-output="rangedDamage">${derived.rangedDamage}</strong></div>
@@ -532,10 +530,10 @@
                     <input id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
                 </div>
                 <div class="weapon-table-header"><span>Arma / ataque</span><span>Daño</span><span></span><span></span></div>
-                ${form.weapons.map((weapon, index) => `
+                ${weapons.map((weapon, index) => `
                     <div class="weapon-row">
                         <input type="text" value="${escapeHtml(weapon.name)}" placeholder="Nombre" data-action="weapon-name" data-index="${index}">
-                        <input type="text" value="${escapeHtml(weapon.damage)}" placeholder="1d6+1" data-action="weapon-damage" data-index="${index}">
+                        <input type="text" value="${escapeHtml(weapon.damage)}" data-last-valid="${escapeHtml(weapon.damage)}" placeholder="MMm+5" maxlength="64" spellcheck="false" aria-label="Fórmula de daño de ${escapeHtml(weapon.name || "arma")}" data-action="weapon-damage" data-index="${index}">
                         <button class="roll-button" type="button" title="Tirar daño" aria-label="Tirar daño de ${escapeHtml(weapon.name || "arma")}" data-action="roll-weapon" data-index="${index}">${diceIcon()}</button>
                         <button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar arma" data-action="remove-weapon" data-index="${index}">×</button>
                     </div>
@@ -649,6 +647,7 @@
             container.oninput = event => this.handleDynamicInput(event);
             container.onchange = event => this.handleDynamicChange(event);
             container.onclick = event => this.handleDynamicClick(event);
+            container.onfocusout = event => this.handleDynamicFocusOut(event);
         }
 
         handleDynamicInput(event) {
@@ -658,8 +657,19 @@
             const index = Number(target.dataset.index);
             const value = target.type === "number" ? this.numberFromInput(target.value) : target.value;
 
+            if (action === "weapon-damage" && !ADOM.Calculations.isDamageFormulaInput(value)) {
+                const state = this.store.getState();
+                target.value = state.human.weapons[index]?.damage || "";
+                return;
+            }
+            if (action === "weapon-damage") {
+                target.setAttribute("aria-invalid", String(Boolean(value) && !ADOM.Calculations.parseDamageFormula(value)));
+                if (value === "" || ADOM.Calculations.parseDamageFormula(value)) target.dataset.lastValid = value;
+            }
+
             this.store.update(state => {
                 const form = state[state.activeForm];
+                const weapons = state.human.weapons;
                 const bondIndex = state.activeForm === "ecstasy"
                     ? state.human.bonds.findIndex(bond => bond.anchor)
                     : index;
@@ -672,8 +682,8 @@
                     case "milestone": state.profile.milestones[index] = value; break;
                     case "current-resistance": form.health.currentResistance = value; break;
                     case "rd": form.rd = value; break;
-                    case "weapon-name": form.weapons[index].name = value; break;
-                    case "weapon-damage": form.weapons[index].damage = value; break;
+                    case "weapon-name": weapons[index].name = value; break;
+                    case "weapon-damage": weapons[index].damage = value; break;
                     case "distortion-level": state.distortion.level = value; break;
                     case "arcane-name": state.ecstasy.arcaneSkills[index].name = value; break;
                     case "arcane-value": state.ecstasy.arcaneSkills[index].value = value; break;
@@ -681,6 +691,18 @@
                     case "bond-level": if (bondIndex >= 0) state.human.bonds[bondIndex].level = Math.max(1, value); break;
                     default: return;
                 }
+            }, { source: "live-input" });
+        }
+
+        handleDynamicFocusOut(event) {
+            const target = event.target.closest('[data-action="weapon-damage"]');
+            if (!target || target.value === "" || ADOM.Calculations.parseDamageFormula(target.value)) return;
+            const restoredValue = target.dataset.lastValid || "";
+            target.value = restoredValue;
+            target.setAttribute("aria-invalid", "false");
+            const index = Number(target.dataset.index);
+            this.store.update(state => {
+                state.human.weapons[index].damage = restoredValue;
             }, { source: "live-input" });
         }
 
@@ -724,7 +746,7 @@
                 const form = state[state.activeForm];
                 switch (action) {
                     case "clear-temporal": state.profile.temporalAspects[index] = ""; break;
-                    case "remove-weapon": form.weapons.splice(index, 1); break;
+                    case "remove-weapon": state.human.weapons.splice(index, 1); break;
                     case "remove-arcane": state.ecstasy.arcaneSkills.splice(index, 1); break;
                     default: return;
                 }
@@ -804,16 +826,90 @@
             });
         }
 
+        chooseSkill(skills, weaponLabel) {
+            return new Promise(resolve => {
+                const backdrop = document.createElement("div");
+                backdrop.className = "attribute-picker-backdrop";
+                backdrop.innerHTML = `
+                    <section class="attribute-picker" role="dialog" aria-modal="true" aria-labelledby="skillPickerTitle">
+                        <h2 id="skillPickerTitle">¿Con qué habilidad usas ${escapeHtml(weaponLabel || "este ataque")}?</h2>
+                        <p>Después podrás elegir el atributo de la tirada.</p>
+                        <div class="attribute-picker-options">
+                            ${skills.map((skill, index) => `
+                                <button type="button" class="attribute-option" data-skill-index="${index}">
+                                    <strong>${index + 1}</strong>
+                                    <span>${escapeHtml(skill.label)}</span>
+                                    <b>+${ADOM.Calculations.number(skill.value)}</b>
+                                </button>
+                            `).join("")}
+                        </div>
+                        <button type="button" class="button button-secondary attribute-picker-cancel">Cancelar</button>
+                    </section>
+                `;
+
+                const close = value => {
+                    document.removeEventListener("keydown", onKeyDown);
+                    backdrop.remove();
+                    resolve(value);
+                };
+                const onKeyDown = event => { if (event.key === "Escape") close(null); };
+                backdrop.addEventListener("click", event => {
+                    const option = event.target.closest("[data-skill-index]");
+                    if (option) return close(Number(option.dataset.skillIndex));
+                    if (event.target === backdrop || event.target.closest(".attribute-picker-cancel")) close(null);
+                });
+                document.addEventListener("keydown", onKeyDown);
+                document.body.appendChild(backdrop);
+                backdrop.querySelector(".attribute-option")?.focus();
+            });
+        }
+
         async rollWeapon(index) {
             const state = this.store.getState();
-            const weapon = state[state.activeForm].weapons[index];
+            const form = state[state.activeForm];
+            const weapon = state.human.weapons[index];
             const formula = String(weapon.damage || "").trim();
-            if (!formula) {
-                this.showToast("Indica primero la fórmula de daño del arma.", "error");
+            if (!ADOM.Calculations.parseDamageFormula(formula)) {
+                this.showToast("Usa una fórmula como MMm+5: solo m, c, M y un bonificador con + o -.", "error");
                 return;
             }
-            const command = formula.startsWith("/") ? formula : `/roll ${formula}`;
-            await this.sendRollCommand(command, weapon.name || "Daño de arma");
+            const skillIndex = await this.chooseSkill(form.skills, weapon.name);
+            if (skillIndex === null) return;
+            const attributeIndex = await this.chooseAttribute(form.attributes, form.skills[skillIndex].label);
+            if (attributeIndex === null) return;
+
+            const dice = this.rollThreeD10();
+            const damage = ADOM.Calculations.calculateWeaponDamage(formula, dice);
+            if (!damage) {
+                this.showToast("No se pudo calcular el daño. Revisa la fórmula.", "error");
+                return;
+            }
+            const skill = form.skills[skillIndex];
+            const attribute = form.attributes[attributeIndex];
+            const modifier = ADOM.Calculations.number(skill.value) + ADOM.Calculations.number(attribute.value);
+            const checkTotal = damage.values.c + modifier;
+            const safeWeaponName = this.sanitizeChatText(weapon.name || "Ataque");
+            const safeSkill = this.sanitizeChatText(skill.label);
+            const safeAttribute = this.sanitizeChatText(attribute.code);
+            const diceBreakdown = `m=${damage.values.m}, c=${damage.values.c}, M=${damage.values.M}`;
+            const selectedBreakdown = damage.selectedDice.join(" + ");
+            const bonusText = damage.bonus >= 0 ? ` + ${damage.bonus}` : ` - ${Math.abs(damage.bonus)}`;
+            const command = `/em ${safeWeaponName} — Dados: ${dice.join(", ")} (${diceBreakdown}) | Prueba ${safeSkill} + ${safeAttribute}: ${damage.values.c} + ${modifier} = ${checkTotal} | Daño ${formula}: ${selectedBreakdown}${bonusText} = ${damage.total}`;
+            await this.sendRollCommand(command, safeWeaponName);
+        }
+
+        rollThreeD10() {
+            return Array.from({ length: 3 }, () => {
+                if (!global.crypto?.getRandomValues) return Math.floor(Math.random() * 10) + 1;
+                const maximum = 0x100000000 - (0x100000000 % 10);
+                const values = new Uint32Array(1);
+                do global.crypto.getRandomValues(values); while (values[0] >= maximum);
+                return values[0] % 10 + 1;
+            });
+        }
+
+        sanitizeChatText(value) {
+            return String(value || "").replace(/[\r\n|]+/g, " ").trim();
         }
 
         async sendManualCommand() {
