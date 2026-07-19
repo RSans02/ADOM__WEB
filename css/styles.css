@@ -30,6 +30,8 @@ html {
 
 body {
     margin: 0;
+    max-width: 100%;
+    overflow-x: hidden;
     color: var(--ink);
     background:
         radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.56), transparent 30rem),
@@ -252,6 +254,11 @@ input[type="checkbox"] {
     font-weight: 800;
 }
 
+/* Quita esta regla para volver a mostrar el indicador de guardado de la cabecera. */
+.save-status {
+    display: none;
+}
+
 .save-status::before,
 .connection-pill::before {
     content: "";
@@ -272,17 +279,17 @@ input[type="checkbox"] {
 }
 
 .sheet-container {
-    width: min(1900px, 100%);
+    /* width: min(1900px, 100%); */
     margin: 0 auto;
-    padding: 24px clamp(14px, 2.2vw, 34px) 50px;
+    padding: 10px;
 }
 
 .identity-strip {
     display: grid;
     grid-template-columns: 1fr 1.35fr 1fr;
-    gap: 14px;
-    margin-bottom: 18px;
-    padding: 16px;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
     border: 1px solid rgba(var(--accent-rgb), 0.22);
     border-radius: var(--radius);
     background: rgba(255, 255, 255, 0.78);
@@ -316,25 +323,61 @@ input[type="checkbox"] {
 
 .sheet-grid {
     display: grid;
-    grid-template-columns: minmax(220px, 0.9fr) minmax(260px, 1.25fr) minmax(290px, 1.15fr) minmax(250px, 0.85fr);
-    gap: 18px;
+    grid-template-columns: minmax(205px, 0.82fr) minmax(210px, 0.78fr) minmax(370px, 1.35fr) minmax(165px, 0.62fr) minmax(210px, 0.72fr);
+    gap: 10px;
     align-items: start;
+}
+
+.sheet-grid > *,
+.topbar > * {
+    min-width: 0;
 }
 
 .sheet-column {
     display: grid;
-    gap: 18px;
+    gap: 10px;
 }
 
 .card,
 .summary-card,
 .roll20-card,
+.appearance-card,
 .help-card {
     overflow: hidden;
     border: 1px solid rgba(var(--accent-rgb), 0.31);
     border-radius: var(--radius);
     background: var(--surface-muted);
     box-shadow: var(--shadow);
+}
+
+.appearance-card h2 {
+    margin: 0 0 10px;
+    color: var(--accent-strong);
+    font-size: 0.86rem;
+}
+
+.color-setting {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 42px 42px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 38px;
+    color: var(--muted);
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.color-setting + .color-setting {
+    border-top: 1px solid rgba(var(--accent-rgb), 0.13);
+}
+
+.color-setting input[type="color"] {
+    width: 42px;
+    height: 30px;
+    padding: 2px;
+    border-radius: 7px;
+    cursor: pointer;
 }
 
 .card-header,
@@ -677,11 +720,18 @@ input[type="checkbox"] {
     font-weight: 800;
 }
 
+.empty-bond-message {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.76rem;
+    line-height: 1.45;
+}
+
 .sheet-sidebar {
-    position: sticky;
-    top: 94px;
+    /* position: sticky;
+    top: 94px; */
     display: grid;
-    gap: 18px;
+    gap: 10px;
 }
 
 .summary-card {
@@ -765,6 +815,7 @@ input[type="checkbox"] {
 }
 
 .roll20-card,
+.appearance-card,
 .help-card {
     padding: 14px;
     background: rgba(255, 255, 255, 0.86);
@@ -865,15 +916,23 @@ input[type="checkbox"] {
     }
 }
 
-@media (max-width: 1380px) {
+@media (max-width: 1450px) {
     .sheet-grid {
-        grid-template-columns: repeat(3, minmax(240px, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .sheet-portrait-column {
+        grid-column: 1;
     }
 
     .sheet-sidebar {
         position: static;
+        grid-column: 2 / -1;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .help-card {
         grid-column: 1 / -1;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 }
 
@@ -897,6 +956,7 @@ input[type="checkbox"] {
     }
 
     .sheet-sidebar {
+        grid-column: 1 / -1;
         grid-template-columns: 1fr 1fr;
     }
 
@@ -942,6 +1002,7 @@ input[type="checkbox"] {
     }
 
     .sheet-sidebar,
+    .sheet-portrait-column,
     .help-card {
         grid-column: auto;
     }
@@ -990,16 +1051,10 @@ input[type="checkbox"] {
 .skill-main-row { border-bottom: 0; }
 .skill-talents {
     display: grid;
-    grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.45rem;
     align-items: center;
     padding: 0 0.15rem 0.35rem 2.55rem;
-}
-.skill-talents-label {
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    opacity: 0.7;
 }
 .skill-talents input {
     min-width: 0;
@@ -1024,7 +1079,7 @@ input[type="checkbox"] {
     font-size: 0.76rem;
 }
 
-/* Lazos: ancla + 8 filas fijas */
+/* Lazos: 8 filas humanas; éxtasis refleja únicamente el ancla humana. */
 .bond-table-header,
 .bond-row {
     grid-template-columns: 48px minmax(150px, 1fr) 58px 52px 52px 52px;
@@ -1033,6 +1088,12 @@ input[type="checkbox"] {
     display: grid;
     place-items: center;
     cursor: pointer;
+}
+.anchor-cell.is-readonly {
+    cursor: default;
+}
+.anchor-cell.is-readonly span {
+    opacity: 0.72;
 }
 .anchor-cell input {
     position: absolute;
@@ -1116,7 +1177,6 @@ input[type="checkbox"] {
         grid-template-columns: 1fr;
         padding-left: 2.55rem;
     }
-    .skill-talents-label { display: none; }
     .bond-table-header,
     .bond-row {
         grid-template-columns: 42px minmax(125px, 1fr) 52px 46px 46px 46px;
@@ -1129,10 +1189,8 @@ input[type="checkbox"] {
 /* Imagen del personaje */
 .character-portrait-card {
     display: grid;
-    grid-template-columns: 130px minmax(0, 1fr);
-    gap: 18px;
-    align-items: center;
-    margin-bottom: 14px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
     padding: 14px;
     border: 1px solid rgba(var(--accent-rgb), 0.2);
     border-radius: var(--radius);
@@ -1141,18 +1199,26 @@ input[type="checkbox"] {
 }
 .portrait-preview-wrap {
     position: relative;
-    width: 130px;
+    width: 100%;
     aspect-ratio: 1 / 1;
     overflow: hidden;
     border: 2px solid rgba(var(--accent-rgb), 0.3);
     border-radius: 16px;
     background: var(--accent-soft);
+    touch-action: none;
 }
 .character-portrait {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
+    cursor: grab;
+    transform-origin: center;
+    user-select: none;
+    will-change: transform;
+}
+.character-portrait.is-dragging {
+    cursor: grabbing;
 }
 .portrait-placeholder {
     display: grid;
@@ -1166,14 +1232,43 @@ input[type="checkbox"] {
 }
 .portrait-url-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
+}
+
+.portrait-url-row input {
+    grid-column: 1 / -1;
+    min-width: 0;
 }
 .portrait-url-field small {
     display: block;
     margin-top: 7px;
     color: var(--muted);
     font-size: .74rem;
+}
+.portrait-adjustments {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 8px;
+    align-items: center;
+}
+.portrait-adjustments label,
+.portrait-adjustments output {
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 750;
+}
+.portrait-adjustments output {
+    min-width: 3.2rem;
+    text-align: right;
+}
+.portrait-adjustments .button {
+    grid-column: 1 / -1;
+}
+.portrait-adjustment-help {
+    color: var(--muted);
+    font-size: 0.7rem;
+    line-height: 1.4;
 }
 
 /* Botones de tirada con dado real */
@@ -1197,6 +1292,4 @@ input[type="checkbox"] {
 @media (max-width: 650px) {
     .character-portrait-card { grid-template-columns: 92px minmax(0, 1fr); }
     .portrait-preview-wrap { width: 92px; }
-    .portrait-url-row { grid-template-columns: 1fr 1fr; }
-    .portrait-url-row input { grid-column: 1 / -1; }
 }

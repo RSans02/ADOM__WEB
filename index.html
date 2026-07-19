@@ -39,22 +39,6 @@
         </header>
 
         <main class="sheet-container">
-            <section class="character-portrait-card" aria-label="Imagen del personaje">
-                <div class="portrait-preview-wrap">
-                    <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje" hidden>
-                    <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A</div>
-                </div>
-                <label class="field portrait-url-field">
-                    <span>URL pública de la imagen</span>
-                    <div class="portrait-url-row">
-                        <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
-                        <button id="applyImageUrlButton" class="button button-secondary" type="button">Mostrar</button>
-                        <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button">Quitar</button>
-                    </div>
-                    <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
-                </label>
-            </section>
-
             <section class="identity-strip" aria-label="Identidad del personaje">
                 <label class="field field-name">
                     <span>Nombre</span>
@@ -106,7 +90,7 @@
 
                     <section class="card card-inline" aria-labelledby="extraExperienceTitle">
                         <div class="card-header">
-                            <h2 id="extraExperienceTitle">Experiencia libre</h2>
+                            <h2 id="extraExperienceTitle">Experiencia</h2>
                         </div>
                         <div class="card-body inline-number">
                             <input id="extraExperience" type="number" min="0" step="1" inputmode="numeric">
@@ -160,9 +144,34 @@
                     <section class="card" aria-labelledby="bondsTitle">
                         <div class="card-header">
                             <h2 id="bondsTitle">Lazos</h2>
-                            <span class="header-note">8 fijos</span>
+                            <span class="header-note" id="bondsNote">8 fijos</span>
                         </div>
                         <div class="card-body" id="bondsPanel"></div>
+                    </section>
+                </div>
+
+                <div class="sheet-portrait-column">
+                    <section class="character-portrait-card" aria-label="Imagen del personaje">
+                        <div class="portrait-preview-wrap">
+                            <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje" draggable="false" hidden>
+                            <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A</div>
+                        </div>
+                        <label class="field portrait-url-field">
+                            <span>URL pública de la imagen</span>
+                            <div class="portrait-url-row">
+                                <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
+                                <button id="applyImageUrlButton" class="button button-secondary" type="button">Mostrar</button>
+                                <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button">Quitar</button>
+                            </div>
+                            <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
+                        </label>
+                        <div class="portrait-adjustments">
+                            <label for="characterImageZoom">Zoom</label>
+                            <input id="characterImageZoom" type="range" min="1" max="3" step="0.05" value="1">
+                            <output id="characterImageZoomValue" for="characterImageZoom">100%</output>
+                            <button id="resetImageTransformButton" class="button button-secondary" type="button">Centrar</button>
+                        </div>
+                        <small class="portrait-adjustment-help">Arrastra la imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
                     </section>
                 </div>
 
@@ -188,6 +197,20 @@
                             <div><span>Comprar habilidad</span><strong>5 XP</strong></div>
                             <div><span>Comprar talento</span><strong>10 XP</strong></div>
                             <div><span>Comprar atributo</span><strong>15 XP</strong></div>
+                        </div>
+                    </section>
+
+                    <section class="appearance-card" aria-labelledby="appearanceTitle">
+                        <h2 id="appearanceTitle">Apariencia</h2>
+                        <div class="color-setting">
+                            <span>Forma humana</span>
+                            <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
+                            <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
+                        </div>
+                        <div class="color-setting">
+                            <span>Forma de éxtasis</span>
+                            <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
+                            <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
                         </div>
                     </section>
 

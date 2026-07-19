@@ -91,7 +91,9 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Las tiradas de atributo conservan el dado base configurado en el panel de Roll20.
 
 - Los lazos vacíos no suman experiencia.
-- La ficha admite una imagen de personaje mediante URL pública directa.
+- La ficha admite una imagen de personaje mediante URL pública directa, con encuadre por arrastre y zoom persistente.
+- Los colores principales y de fondo de la forma humana y la forma de éxtasis se pueden configurar por separado.
+- La forma humana conserva 8 lazos. Éxtasis refleja el lazo humano marcado como ancla; si no hay ancla, no muestra ninguno.
 - Los botones de tirada muestran un icono de dado.
 
 - El bloque de Salud se ha recolocado debajo de Hitos para aprovechar mejor el espacio.

@@ -23,10 +23,26 @@
         </svg>`;
     }
 
+    function parseHexColor(hex) {
+        const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(String(hex));
+        return match ? [
+            Number.parseInt(match[1], 16),
+            Number.parseInt(match[2], 16),
+            Number.parseInt(match[3], 16)
+        ] : [166, 77, 120];
+    }
+
+    function mixHexColor(hex, target, amount) {
+        const source = parseHexColor(hex);
+        const mixed = source.map((channel, index) => Math.round(channel + (target[index] - channel) * amount));
+        return `#${mixed.map(channel => channel.toString(16).padStart(2, "0")).join("")}`;
+    }
+
     class SheetUI {
         constructor(store, bridge) {
             this.store = store;
             this.bridge = bridge;
+            this.portraitDrag = null;
             this.elements = this.collectElements();
             this.bindStaticEvents();
             this.store.addEventListener("change", event => {
@@ -43,12 +59,12 @@
         collectElements() {
             const ids = [
                 "appShell", "humanTab", "ecstasyTab", "saveStatus", "exportButton", "importInput", "resetButton",
-                "characterName", "characterImageUrl", "characterPortrait", "characterPortraitPlaceholder", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
+                "characterName", "characterImageUrl", "characterPortrait", "characterPortraitPlaceholder", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
-                "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
-                "tierLabel", "tierValue", "baseDieInput", "manualCommand", "sendCommandButton", "connectionStatus",
+                "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
+                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "baseDieInput", "manualCommand", "sendCommandButton", "connectionStatus",
                 "bridgeMessage", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
@@ -76,9 +92,29 @@
                 this.elements.characterPortrait.hidden = false;
                 this.elements.characterPortraitPlaceholder.hidden = true;
             });
+            this.elements.characterPortrait.addEventListener("pointerdown", event => this.startPortraitDrag(event));
+            this.elements.characterPortrait.addEventListener("pointermove", event => this.movePortraitDrag(event));
+            this.elements.characterPortrait.addEventListener("pointerup", event => this.finishPortraitDrag(event));
+            this.elements.characterPortrait.addEventListener("pointercancel", event => this.finishPortraitDrag(event));
+            this.elements.characterPortrait.addEventListener("wheel", event => this.zoomPortraitWithWheel(event), { passive: false });
+            this.elements.characterImageZoom.addEventListener("input", event => {
+                const zoom = this.clampNumber(event.target.value, 1, 3, 1);
+                this.store.update(state => {
+                    state.profile.imageTransform.zoom = zoom;
+                    this.constrainPortraitPosition(state.profile.imageTransform);
+                }, { source: "live-input" });
+                this.applyPortraitTransform(this.store.getState().profile.imageTransform);
+            });
+            this.elements.resetImageTransformButton.addEventListener("click", () => {
+                this.store.update(state => { state.profile.imageTransform = { x: 0, y: 0, zoom: 1 }; });
+            });
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
             this.bindTextInput(this.elements.baseDieInput, state => state.settings.baseDie, (state, value) => { state.settings.baseDie = value; });
+            this.elements.humanColorInput.addEventListener("input", event => this.setFormColor("human", event.target.value));
+            this.elements.ecstasyColorInput.addEventListener("input", event => this.setFormColor("ecstasy", event.target.value));
+            this.elements.humanBackgroundInput.addEventListener("input", event => this.setFormBackground("human", event.target.value));
+            this.elements.ecstasyBackgroundInput.addEventListener("input", event => this.setFormBackground("ecstasy", event.target.value));
 
             this.elements.extraExperience.addEventListener("input", event => {
                 this.store.update(state => {
@@ -124,6 +160,7 @@
             const derived = ADOM.Calculations.deriveForm(state, formKey);
 
             this.elements.appShell.dataset.form = formKey;
+            this.applyFormTheme(state.settings.formColors[formKey], state.settings.formBackgrounds[formKey]);
             this.renderTabs(formKey);
             this.renderCharacterPortrait(state.profile);
             this.syncStaticFields(state, form);
@@ -136,7 +173,7 @@
             this.renderCombat(form, derived);
             this.renderDistortion(state.distortion, derived);
             this.renderArcane(formKey, form, derived);
-            this.renderBonds(form.bonds);
+            this.renderBonds(formKey, this.getVisibleBonds(state, formKey));
             this.renderChecks(formKey, derived);
             this.renderHelp(formKey);
         }
@@ -167,8 +204,9 @@
                 if (element) element.textContent = value;
             }
 
+            const visibleBonds = this.getVisibleBonds(state, formKey);
             this.elements.bondsPanel.querySelectorAll(".bond-row").forEach((row, index) => {
-                const level = ADOM.Calculations.number(form.bonds[index]?.level);
+                const level = ADOM.Calculations.number(visibleBonds[index]?.level);
                 const values = [Math.floor(level / 2), level, level * 2];
                 row.querySelectorAll(".bond-derived").forEach((cell, cellIndex) => {
                     cell.textContent = values[cellIndex] ?? 0;
@@ -193,6 +231,32 @@
             this.syncInput(this.elements.characterComplication, state.profile.complication);
             this.syncInput(this.elements.extraExperience, form.extraExperience);
             this.syncInput(this.elements.baseDieInput, state.settings.baseDie);
+            this.syncInput(this.elements.humanColorInput, state.settings.formColors.human);
+            this.syncInput(this.elements.ecstasyColorInput, state.settings.formColors.ecstasy);
+            this.syncInput(this.elements.humanBackgroundInput, state.settings.formBackgrounds.human);
+            this.syncInput(this.elements.ecstasyBackgroundInput, state.settings.formBackgrounds.ecstasy);
+        }
+
+        setFormColor(formKey, color) {
+            this.store.update(state => {
+                state.settings.formColors[formKey] = color;
+            }, { source: "theme-color" });
+        }
+
+        setFormBackground(formKey, color) {
+            this.store.update(state => {
+                state.settings.formBackgrounds[formKey] = color;
+            }, { source: "theme-background" });
+        }
+
+        applyFormTheme(color, background) {
+            const rgb = parseHexColor(color);
+            this.elements.appShell.style.setProperty("--accent", color);
+            this.elements.appShell.style.setProperty("--accent-strong", mixHexColor(color, [0, 0, 0], 0.28));
+            this.elements.appShell.style.setProperty("--accent-soft", mixHexColor(color, [255, 255, 255], 0.86));
+            this.elements.appShell.style.setProperty("--accent-rgb", rgb.join(", "));
+            this.elements.appShell.style.setProperty("--page-bg", background);
+            this.elements.appShell.style.setProperty("--page-bg-deep", mixHexColor(background, [0, 0, 0], 0.08));
         }
 
         syncInput(element, value) {
@@ -203,6 +267,7 @@
 
         renderCharacterPortrait(profile) {
             const url = String(profile.imageUrl || "").trim();
+            this.applyPortraitTransform(profile.imageTransform);
             if (!url) {
                 this.elements.characterPortrait.removeAttribute("src");
                 this.elements.characterPortrait.hidden = true;
@@ -222,12 +287,82 @@
                 this.showToast("La imagen debe usar una URL pública que empiece por http:// o https://.", "error");
                 return;
             }
-            this.store.update(state => { state.profile.imageUrl = url; });
+            this.store.update(state => {
+                if (state.profile.imageUrl !== url) {
+                    state.profile.imageTransform = { x: 0, y: 0, zoom: 1 };
+                }
+                state.profile.imageUrl = url;
+            });
         }
 
         clearCharacterImageUrl() {
             this.elements.characterImageUrl.value = "";
-            this.store.update(state => { state.profile.imageUrl = ""; });
+            this.store.update(state => {
+                state.profile.imageUrl = "";
+                state.profile.imageTransform = { x: 0, y: 0, zoom: 1 };
+            });
+        }
+
+        applyPortraitTransform(transform) {
+            const x = this.clampNumber(transform?.x, -50, 50, 0);
+            const y = this.clampNumber(transform?.y, -50, 50, 0);
+            const zoom = this.clampNumber(transform?.zoom, 1, 3, 1);
+            this.elements.characterPortrait.style.objectPosition = `${50 + x}% ${50 + y}%`;
+            this.elements.characterPortrait.style.transform = `scale(${zoom})`;
+            this.elements.characterImageZoom.value = String(zoom);
+            this.elements.characterImageZoomValue.value = `${Math.round(zoom * 100)}%`;
+        }
+
+        startPortraitDrag(event) {
+            if (this.elements.characterPortrait.hidden || event.button !== 0) return;
+            const transform = this.store.getState().profile.imageTransform;
+            this.portraitDrag = {
+                pointerId: event.pointerId,
+                startX: event.clientX,
+                startY: event.clientY,
+                imageX: transform.x,
+                imageY: transform.y
+            };
+            this.elements.characterPortrait.setPointerCapture(event.pointerId);
+            this.elements.characterPortrait.classList.add("is-dragging");
+            event.preventDefault();
+        }
+
+        movePortraitDrag(event) {
+            if (!this.portraitDrag || this.portraitDrag.pointerId !== event.pointerId) return;
+            const bounds = this.elements.characterPortrait.parentElement.getBoundingClientRect();
+            const transform = this.store.getState().profile.imageTransform;
+            transform.x = this.clampNumber(this.portraitDrag.imageX - (event.clientX - this.portraitDrag.startX) / bounds.width * 100, -50, 50, 0);
+            transform.y = this.clampNumber(this.portraitDrag.imageY - (event.clientY - this.portraitDrag.startY) / bounds.height * 100, -50, 50, 0);
+            this.applyPortraitTransform(transform);
+        }
+
+        finishPortraitDrag(event) {
+            if (!this.portraitDrag || this.portraitDrag.pointerId !== event.pointerId) return;
+            this.portraitDrag = null;
+            this.elements.characterPortrait.classList.remove("is-dragging");
+            this.store.update(() => {}, { source: "portrait-drag" });
+        }
+
+        zoomPortraitWithWheel(event) {
+            if (this.elements.characterPortrait.hidden) return;
+            event.preventDefault();
+            const direction = event.deltaY < 0 ? 0.1 : -0.1;
+            this.store.update(state => {
+                state.profile.imageTransform.zoom = this.clampNumber(state.profile.imageTransform.zoom + direction, 1, 3, 1);
+                this.constrainPortraitPosition(state.profile.imageTransform);
+            }, { source: "portrait-zoom" });
+        }
+
+        constrainPortraitPosition(transform) {
+            transform.x = this.clampNumber(transform.x, -50, 50, 0);
+            transform.y = this.clampNumber(transform.y, -50, 50, 0);
+        }
+
+        clampNumber(value, minimum, maximum, fallback) {
+            const parsed = Number(value);
+            const safeValue = Number.isFinite(parsed) ? parsed : fallback;
+            return Math.min(maximum, Math.max(minimum, safeValue));
         }
 
         renderAttributes(form, derived) {
@@ -254,7 +389,6 @@
                         <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">${diceIcon()}</button>
                     </div>
                     <div class="skill-talents" aria-label="Talentos de ${escapeHtml(skill.label)}">
-                        <span class="skill-talents-label">Talentos</span>
                         <input type="text" value="${escapeHtml(skill.talents?.[0] ?? "")}" placeholder="Talento 1" data-action="skill-talent" data-index="${index}" data-talent-index="0">
                         <input type="text" value="${escapeHtml(skill.talents?.[1] ?? "")}" placeholder="Talento 2" data-action="skill-talent" data-index="${index}" data-talent-index="1">
                     </div>
@@ -368,16 +502,26 @@
             this.bindDynamicContainer(this.elements.arcaneSkillsList);
         }
 
-        renderBonds(items) {
-            const fixedItems = Array.from({ length: 8 }, (_, index) => items[index] || { name: "", level: 1, anchor: false });
+        renderBonds(formKey, items) {
+            const isEcstasy = formKey === "ecstasy";
+            const count = isEcstasy ? items.length : 8;
+            const fixedItems = isEcstasy
+                ? items
+                : Array.from({ length: count }, (_, index) => items[index] || { name: "", level: 1, anchor: false });
+            this.elements.bondsTitle.textContent = isEcstasy ? "Lazo" : "Lazos";
+            this.elements.bondsNote.textContent = isEcstasy ? (count ? "Ancla humana" : "Sin ancla") : "8 fijos";
+            if (!count) {
+                this.elements.bondsPanel.innerHTML = `<p class="empty-bond-message">No hay ningún lazo porque la forma humana no tiene ancla.</p>`;
+                return;
+            }
             this.elements.bondsPanel.innerHTML = `
                 <div class="bond-table-header"><span>Ancla</span><span>Nombre</span><span>Lazo</span><span>Medio</span><span>Mayor</span><span>Crítico</span></div>
                 ${fixedItems.map((item, index) => {
                     const level = ADOM.Calculations.number(item.level);
                     return `
                         <div class="bond-row">
-                            <label class="anchor-cell" title="Marcar como ancla">
-                                <input type="radio" name="bond-anchor-${this.store.getState().activeForm}" ${item.anchor ? "checked" : ""} data-action="bond-anchor" data-index="${index}">
+                            <label class="anchor-cell${isEcstasy ? " is-readonly" : ""}" title="${isEcstasy ? "El ancla se gestiona desde la forma humana" : "Marcar o desmarcar como ancla"}">
+                                <input type="checkbox" ${item.anchor ? "checked" : ""} ${isEcstasy ? "disabled" : ""} data-action="bond-anchor" data-index="${index}">
                                 <span></span>
                             </label>
                             <input type="text" value="${escapeHtml(item.name)}" placeholder="Lazo ${index + 1}" data-action="bond-name" data-index="${index}">
@@ -389,6 +533,14 @@
                 }).join("")}
             `;
             this.bindDynamicContainer(this.elements.bondsPanel);
+        }
+
+        getVisibleBonds(state, formKey) {
+            if (formKey === "ecstasy") {
+                const anchor = state.human.bonds.find(bond => bond.anchor);
+                return anchor ? [anchor] : [];
+            }
+            return state.human.bonds;
         }
 
         renderChecks(formKey, derived) {
@@ -431,6 +583,9 @@
 
             this.store.update(state => {
                 const form = state[state.activeForm];
+                const bondIndex = state.activeForm === "ecstasy"
+                    ? state.human.bonds.findIndex(bond => bond.anchor)
+                    : index;
                 switch (action) {
                     case "attribute-descriptor": form.attributes[index].descriptor = value; break;
                     case "attribute-value": form.attributes[index].value = value; break;
@@ -446,8 +601,8 @@
                     case "distortion-level": state.distortion.level = value; break;
                     case "arcane-name": state.ecstasy.arcaneSkills[index].name = value; break;
                     case "arcane-value": state.ecstasy.arcaneSkills[index].value = value; break;
-                    case "bond-name": form.bonds[index].name = value; break;
-                    case "bond-level": form.bonds[index].level = Math.max(1, value); break;
+                    case "bond-name": if (bondIndex >= 0) state.human.bonds[bondIndex].name = value; break;
+                    case "bond-level": if (bondIndex >= 0) state.human.bonds[bondIndex].level = Math.max(1, value); break;
                     default: return;
                 }
             }, { source: "live-input" });
@@ -466,7 +621,8 @@
                     case "severe-wound": form.health.severeWounds[index] = target.checked; break;
                     case "ecstasy-track": state.distortion.ecstasyTrack[index] = target.checked; break;
                     case "bond-anchor":
-                        form.bonds.forEach((bond, bondIndex) => { bond.anchor = bondIndex === index; });
+                        if (state.activeForm === "ecstasy") return;
+                        form.bonds.forEach((bond, bondIndex) => { bond.anchor = target.checked && bondIndex === index; });
                         break;
                     default: return;
                 }
@@ -645,7 +801,7 @@
         }
 
         resetCharacter() {
-            if (!global.confirm("¿Restablecer la ficha al personaje de ejemplo? Se perderán los cambios guardados en este navegador.")) {
+            if (!global.confirm("¿Restablecer la ficha al personaje de ejemplo? Se conservarán la imagen y su encuadre, pero se perderán los demás cambios guardados.")) {
                 return;
             }
             this.store.reset();

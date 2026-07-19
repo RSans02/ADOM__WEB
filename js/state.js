@@ -36,11 +36,12 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 3,
+            schemaVersion: 8,
             activeForm: "human",
             profile: {
                 name: "Lluvia Clara",
                 imageUrl: "",
+                imageTransform: { x: 0, y: 0, zoom: 1 },
                 concept: "Solitaria soñadora",
                 complication: "Dispersa",
                 temporalAspects: ["", "", "", ""],
@@ -55,7 +56,15 @@
                 ecstasyTrack: [false, false, false, false, false, false, false, false, false, false]
             },
             settings: {
-                baseDie: "1d20"
+                baseDie: "1d20",
+                formColors: {
+                    human: "#a64d78",
+                    ecstasy: "#3f7f8b"
+                },
+                formBackgrounds: {
+                    human: "#ead5df",
+                    ecstasy: "#d4e4e7"
+                }
             },
             human: {
                 attributes: humanAttributes,
@@ -93,7 +102,7 @@
                     lightWounds: [false, false],
                     severeWounds: [false, false]
                 },
-                bonds: Array.from({ length: 8 }, () => ({ name: "", level: 1, anchor: false }))
+                bonds: []
             }
         };
     }
@@ -105,6 +114,19 @@
 
     function normalizeNonNegativeNumber(value, fallback) {
         return Math.max(0, normalizeNumber(value, fallback));
+    }
+
+    function clamp(value, minimum, maximum, fallback) {
+        return Math.min(maximum, Math.max(minimum, normalizeNumber(value, fallback)));
+    }
+
+    function normalizeImageTransform(value) {
+        const zoom = clamp(value?.zoom, 1, 3, 1);
+        return {
+            x: clamp(value?.x, -50, 50, 0),
+            y: clamp(value?.y, -50, 50, 0),
+            zoom
+        };
     }
 
     function normalizeBooleanTrack(value, fallback, length) {
@@ -120,8 +142,14 @@
         return value.map(item => typeof item === "string" ? item : String(item ?? ""));
     }
 
+    function normalizeColor(value, fallback) {
+        const color = String(value ?? "").trim();
+        return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : fallback;
+    }
+
     function mergeForm(defaultForm, incomingForm) {
         const form = incomingForm && typeof incomingForm === "object" ? incomingForm : {};
+        const incomingBonds = Array.isArray(form.bonds) ? form.bonds : [];
         return {
             ...clone(defaultForm),
             ...form,
@@ -154,8 +182,8 @@
                 lightWounds: normalizeBooleanTrack(form.health?.lightWounds, defaultForm.health.lightWounds, 2),
                 severeWounds: normalizeBooleanTrack(form.health?.severeWounds, defaultForm.health.severeWounds, 2)
             },
-            bonds: Array.from({ length: 8 }, (_, index) => {
-                const item = Array.isArray(form.bonds) ? form.bonds[index] : null;
+            bonds: Array.from({ length: defaultForm.bonds.length }, (_, index) => {
+                const item = incomingBonds[index];
                 const fallback = defaultForm.bonds[index] || { name: "", level: 1, anchor: false };
                 return {
                     name: String(item?.name ?? fallback.name ?? ""),
@@ -201,11 +229,12 @@
         }
 
         return {
-            schemaVersion: 3,
+            schemaVersion: 8,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
             profile: {
                 name: String(candidate.profile?.name ?? defaults.profile.name),
                 imageUrl: String(candidate.profile?.imageUrl ?? defaults.profile.imageUrl),
+                imageTransform: normalizeImageTransform(candidate.profile?.imageTransform),
                 concept: String(candidate.profile?.concept ?? defaults.profile.concept),
                 complication: String(candidate.profile?.complication ?? defaults.profile.complication),
                 temporalAspects: normalizeStringArray(candidate.profile?.temporalAspects, defaults.profile.temporalAspects),
@@ -216,7 +245,15 @@
                 ecstasyTrack: normalizeBooleanTrack(candidate.distortion?.ecstasyTrack, defaults.distortion.ecstasyTrack, 10)
             },
             settings: {
-                baseDie: String(candidate.settings?.baseDie ?? defaults.settings.baseDie)
+                baseDie: String(candidate.settings?.baseDie ?? defaults.settings.baseDie),
+                formColors: {
+                    human: normalizeColor(candidate.settings?.formColors?.human, defaults.settings.formColors.human),
+                    ecstasy: normalizeColor(candidate.settings?.formColors?.ecstasy, defaults.settings.formColors.ecstasy)
+                },
+                formBackgrounds: {
+                    human: normalizeColor(candidate.settings?.formBackgrounds?.human, defaults.settings.formBackgrounds.human),
+                    ecstasy: normalizeColor(candidate.settings?.formBackgrounds?.ecstasy, defaults.settings.formBackgrounds.ecstasy)
+                }
             },
             human: normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human))),
             ecstasy: normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)))
@@ -273,7 +310,13 @@
         }
 
         reset() {
+            const preservedImage = {
+                imageUrl: this.state.profile.imageUrl,
+                imageTransform: clone(this.state.profile.imageTransform)
+            };
             this.state = createDefaultState();
+            this.state.profile.imageUrl = preservedImage.imageUrl;
+            this.state.profile.imageTransform = preservedImage.imageTransform;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "reset" } }));
             this.save();
         }
