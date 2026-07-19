@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 15,
+            schemaVersion: 16,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -231,7 +231,7 @@
                     talents: [String(talents?.[0] ?? ""), String(talents?.[1] ?? "")]
                 };
             }) : clone(defaultForm.skills),
-            extraExperience: normalizeNonNegativeNumber(form.extraExperience, 0),
+            extraExperience: Math.max(-1, normalizeNumber(form.extraExperience, 0)),
             rd: normalizeNonNegativeNumber(form.rd, 0),
             weapons: defaultForm.weapons.length === 0
                 ? []
@@ -293,6 +293,15 @@
 
         const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
         const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
+        const activeForm = candidate.activeForm === "ecstasy" ? "ecstasy" : "human";
+        const sharedExtraExperience = Math.max(-1, normalizeNumber(
+            candidate[activeForm]?.extraExperience
+                ?? candidate.human?.extraExperience
+                ?? candidate.ecstasy?.extraExperience,
+            0
+        ));
+        human.extraExperience = sharedExtraExperience;
+        ecstasy.extraExperience = sharedExtraExperience;
         delete human.drama;
         delete ecstasy.drama;
         if (normalizeNumber(candidate.schemaVersion, 0) < 12) {
@@ -304,8 +313,8 @@
         }
 
         return {
-            schemaVersion: 15,
-            activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
+            schemaVersion: 16,
+            activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,
                 Array.isArray(candidate.human?.drama)

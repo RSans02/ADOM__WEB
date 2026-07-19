@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light">
-    <title>Ficha de personaje · ADOM</title>
+    <title>ADOM - Ficha externa</title>
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/styles.css">
 </head>
@@ -80,6 +80,7 @@
                     <section class="card" aria-labelledby="temporalTitle">
                         <div class="card-header">
                             <h2 id="temporalTitle">Aspecto temporal</h2>
+                            <span class="header-note" id="temporalAspectsNote">0/4</span>
                         </div>
                         <div class="card-body repeatable-list" id="temporalAspectsList"></div>
                     </section>
@@ -96,7 +97,7 @@
                             <h2 id="extraExperienceTitle">Experiencia</h2>
                         </div>
                         <div class="card-body inline-number">
-                            <input id="extraExperience" type="number" min="0" step="1" inputmode="numeric">
+                            <input id="extraExperience" type="number" min="-1" step="1" inputmode="numeric">
                         </div>
                     </section>
 
@@ -185,19 +186,21 @@
                     </section>
 
                     <section class="appearance-card" aria-labelledby="appearanceTitle">
-                        <div class="appearance-heading">
+                        <div class="card-header">
                             <h2 id="appearanceTitle">Apariencia</h2>
                             <button id="resetAppearanceButton" class="icon-button appearance-reset-button" type="button" title="Restablecer apariencia" aria-label="Restablecer colores de apariencia">↺</button>
                         </div>
-                        <div class="color-setting">
-                            <span>Forma humana</span>
-                            <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
-                            <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
-                        </div>
-                        <div class="color-setting">
-                            <span>Forma de éxtasis</span>
-                            <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
-                            <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
+                        <div class="card-body appearance-body">
+                            <div class="color-setting">
+                                <span>Forma humana</span>
+                                <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
+                                <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
+                            </div>
+                            <div class="color-setting">
+                                <span>Forma de éxtasis</span>
+                                <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
+                                <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
+                            </div>
                         </div>
                     </section>
                 </div>

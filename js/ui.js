@@ -32,14 +32,6 @@
         </svg>`;
     }
 
-    function orderControls(kind, index, length, label) {
-        const safeLabel = escapeHtml(label);
-        return `<span class="reorder-controls" aria-label="Reordenar ${safeLabel}">
-            <button class="icon-button reorder-button" type="button" data-action="move-${kind}" data-index="${index}" data-direction="-1" title="Subir" aria-label="Subir ${safeLabel}" ${index === 0 ? "disabled" : ""}>↑</button>
-            <button class="icon-button reorder-button" type="button" data-action="move-${kind}" data-index="${index}" data-direction="1" title="Bajar" aria-label="Bajar ${safeLabel}" ${index === length - 1 ? "disabled" : ""}>↓</button>
-        </span>`;
-    }
-
     function updateCumulativeTrack(track, index, checked) {
         track.forEach((value, trackIndex) => {
             if (checked ? trackIndex <= index : trackIndex >= index) {
@@ -69,7 +61,8 @@
             this.bridge = bridge;
             this.portraitDrag = null;
             this.portraitEditing = false;
-            this.skillDrag = null;
+            this.reorderDrag = null;
+            this.attributeDropIndex = null;
             this.skillDropIndex = null;
             this.viewerMode = false;
             this.elements = this.collectElements();
@@ -89,7 +82,7 @@
             const ids = [
                 "appShell", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "shareButton", "exportButton", "importInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
-                "skillsList", "skillsTotal", "temporalAspectsList",
+                "skillsList", "skillsTotal", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
@@ -176,8 +169,12 @@
             this.elements.resetAppearanceButton.addEventListener("click", () => this.resetAppearance());
 
             this.elements.extraExperience.addEventListener("input", event => {
+                const parsedValue = Number(event.target.value);
+                const experience = Math.max(-1, this.numberFromInput(event.target.value));
+                if (Number.isFinite(parsedValue) && parsedValue < -1) event.target.value = "-1";
                 this.store.update(state => {
-                    state[state.activeForm].extraExperience = this.numberFromInput(event.target.value);
+                    state.human.extraExperience = experience;
+                    state.ecstasy.extraExperience = experience;
                 }, { source: "live-input" });
             });
 
@@ -568,15 +565,19 @@
         renderAttributes(form, derived) {
             this.elements.attributesTotal.textContent = derived.attributesTotal;
             this.elements.attributesList.innerHTML = form.attributes.map((attribute, index) => `
-                <div class="stat-row">
-                    <span class="stat-code">${escapeHtml(attribute.code)}</span>
+                <div class="stat-row attribute-row${this.attributeDropIndex === index ? " skill-drop-settle" : ""}" data-attribute-block>
+                    <span class="attribute-leading">
+                        <button class="skill-drag-handle" type="button" draggable="true" data-attribute-drag-handle data-index="${index}" title="Arrastrar para reordenar" aria-label="Arrastrar ${escapeHtml(attribute.code)} para reordenar">${dragGripIcon()}</button>
+                        <span class="stat-code">${escapeHtml(attribute.code)}</span>
+                    </span>
                     <input type="text" value="${escapeHtml(attribute.descriptor)}" aria-label="Descriptor de ${escapeHtml(attribute.code)}" data-action="attribute-descriptor" data-index="${index}">
                     <input class="stat-value" type="number" min="0" step="1" value="${attribute.value}" aria-label="Valor de ${escapeHtml(attribute.code)}" data-action="attribute-value" data-index="${index}">
                     <button class="roll-button" type="button" title="Lanzar dado base + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">${diceIcon()}</button>
-                    ${orderControls("attribute", index, form.attributes.length, attribute.code)}
                 </div>
             `).join("");
+            this.attributeDropIndex = null;
             this.bindDynamicContainer(this.elements.attributesList);
+            this.bindReorderDragAndDrop(this.elements.attributesList, "attribute");
         }
 
         renderSkills(form, derived) {
@@ -598,40 +599,38 @@
             `).join("");
             this.skillDropIndex = null;
             this.bindDynamicContainer(this.elements.skillsList);
-            this.bindSkillDragAndDrop();
+            this.bindReorderDragAndDrop(this.elements.skillsList, "skill");
         }
 
-        bindSkillDragAndDrop() {
-            const container = this.elements.skillsList;
-            container.ondragstart = event => this.handleSkillDragStart(event);
-            container.ondragover = event => this.handleSkillDragOver(event);
-            container.ondrop = event => this.handleSkillDrop(event);
-            container.ondragend = () => this.handleSkillDragEnd();
+        bindReorderDragAndDrop(container, kind) {
+            container.ondragstart = event => this.handleReorderDragStart(event, container, kind);
+            container.ondragover = event => this.handleReorderDragOver(event);
+            container.ondrop = event => this.handleReorderDrop(event);
+            container.ondragend = () => this.handleReorderDragEnd();
         }
 
-        handleSkillDragStart(event) {
-            const handle = event.target.closest("[data-skill-drag-handle]");
+        handleReorderDragStart(event, container, kind) {
+            const handle = event.target.closest(`[data-${kind}-drag-handle]`);
             if (!handle || this.viewerMode) {
                 event.preventDefault();
                 return;
             }
-            const block = handle.closest("[data-skill-block]");
-            this.skillDrag = { block, fromIndex: Number(handle.dataset.index) };
+            const block = handle.closest(`[data-${kind}-block]`);
+            this.reorderDrag = { block, container, kind, fromIndex: Number(handle.dataset.index) };
             event.dataTransfer.effectAllowed = "move";
             event.dataTransfer.setData("text/plain", String(handle.dataset.index));
             event.dataTransfer.setDragImage(block, 24, 20);
             global.requestAnimationFrame(() => block.classList.add("is-dragging"));
         }
 
-        handleSkillDragOver(event) {
-            if (!this.skillDrag) return;
+        handleReorderDragOver(event) {
+            if (!this.reorderDrag) return;
             event.preventDefault();
             event.dataTransfer.dropEffect = "move";
-            const target = event.target.closest("[data-skill-block]");
-            const { block } = this.skillDrag;
+            const { block, container, kind } = this.reorderDrag;
+            const target = event.target.closest(`[data-${kind}-block]`);
             if (!target || target === block) return;
 
-            const container = this.elements.skillsList;
             const targetRect = target.getBoundingClientRect();
             const reference = event.clientY < targetRect.top + targetRect.height / 2
                 ? target
@@ -639,7 +638,7 @@
             if (reference === block || reference === block.nextElementSibling) return;
 
             const positions = new Map(
-                [...container.querySelectorAll("[data-skill-block]")]
+                [...container.querySelectorAll(`[data-${kind}-block]`)]
                     .filter(item => item !== block)
                     .map(item => [item, item.getBoundingClientRect().top])
             );
@@ -655,34 +654,36 @@
             });
         }
 
-        handleSkillDrop(event) {
-            if (!this.skillDrag) return;
+        handleReorderDrop(event) {
+            if (!this.reorderDrag) return;
             event.preventDefault();
-            const { block, fromIndex } = this.skillDrag;
-            const toIndex = [...this.elements.skillsList.querySelectorAll("[data-skill-block]")].indexOf(block);
-            this.skillDrag = null;
+            const { block, container, kind, fromIndex } = this.reorderDrag;
+            const toIndex = [...container.querySelectorAll(`[data-${kind}-block]`)].indexOf(block);
+            this.reorderDrag = null;
             if (toIndex < 0 || toIndex === fromIndex) {
                 block.classList.remove("is-dragging");
                 return;
             }
-            this.skillDropIndex = toIndex;
+            if (kind === "attribute") this.attributeDropIndex = toIndex;
+            else this.skillDropIndex = toIndex;
             this.store.update(state => {
-                const skills = state[state.activeForm].skills;
-                const [movedSkill] = skills.splice(fromIndex, 1);
-                skills.splice(toIndex, 0, movedSkill);
-            }, { source: "drag-reorder-skill" });
+                const items = state[state.activeForm][kind === "attribute" ? "attributes" : "skills"];
+                const [movedItem] = items.splice(fromIndex, 1);
+                items.splice(toIndex, 0, movedItem);
+            }, { source: `drag-reorder-${kind}` });
         }
 
-        handleSkillDragEnd() {
-            if (!this.skillDrag) return;
-            this.skillDrag = null;
+        handleReorderDragEnd() {
+            if (!this.reorderDrag) return;
+            this.reorderDrag = null;
             this.render();
         }
 
         renderTemporalAspects(items) {
             this.elements.temporalAspectsList.innerHTML = items.map((item, index) => `
                 <div class="repeatable-row">
-                    <input type="text" value="${escapeHtml(item)}" placeholder="Aspecto temporal ${index + 1}" data-action="temporal" data-index="${index}">
+                    <!--<input type="text" value="${escapeHtml(item)}" placeholder="Aspecto temporal ${index + 1}" data-action="temporal" data-index="${index}">-->
+                    <input type="text" value="${escapeHtml(item)}" data-action="temporal" data-index="${index}">
                     <button class="icon-button" type="button" title="Vaciar" aria-label="Vaciar aspecto temporal" data-action="clear-temporal" data-index="${index}">×</button>
                 </div>
             `).join("");
@@ -704,7 +705,8 @@
             this.elements.milestonesList.innerHTML = fixedItems.map((item, index) => `
                 <div class="fixed-row">
                     <span class="fixed-row-number">${index + 1}</span>
-                    <input type="text" value="${escapeHtml(item)}" placeholder="Hito ${index + 1}" data-action="milestone" data-index="${index}">
+                    <!--<input type="text" value="${escapeHtml(item)}" placeholder="Hito ${index + 1}" data-action="milestone" data-index="${index}">-->
+                    <input type="text" value="${escapeHtml(item)}" data-action="milestone" data-index="${index}">
                 </div>
             `).join("");
             this.bindDynamicContainer(this.elements.milestonesList);
@@ -737,7 +739,7 @@
                     <label for="rdInput">RD</label>
                     <input id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
                 </div>
-                <div class="weapon-table-header"><span>Arma / ataque</span><span>Daño</span><span>Tipo</span><span></span><span></span></div>
+                <div class="weapon-table-header"><span>Arma / ataque</span><span class="weapon-damage-heading">Daño <span class="damage-formula-help" tabindex="0" role="img" aria-label="m: dado menor; c: dado central; M: dado mayor" data-tooltip="m = dado menor · c = dado central · M = dado mayor">?</span></span><span>Tipo</span><span></span><span></span></div>
                 ${weapons.map((weapon, index) => `
                     <div class="weapon-row">
                         <input type="text" value="${escapeHtml(weapon.name)}" placeholder="Nombre" data-action="weapon-name" data-index="${index}">
@@ -813,7 +815,8 @@
                                 <input type="checkbox" ${item.anchor ? "checked" : ""} ${isEcstasy ? "disabled" : ""} data-action="bond-anchor" data-index="${index}">
                                 <span></span>
                             </label>
-                            <input type="text" value="${escapeHtml(item.name)}" placeholder="Lazo ${index + 1}" data-action="bond-name" data-index="${index}">
+                            <!--<input type="text" value="${escapeHtml(item.name)}" placeholder="Lazo ${index + 1}" data-action="bond-name" data-index="${index}">-->
+                            <input type="text" value="${escapeHtml(item.name)}" data-action="bond-name" data-index="${index}">
                             <input type="number" min="1" step="1" value="${level}" data-action="bond-level" data-index="${index}">
                             <span class="bond-derived">${Math.floor(level / 2)}</span>
                             <span class="bond-derived">${level}</span>
@@ -833,6 +836,8 @@
         }
 
         updateFixedHeaderCounts(state) {
+            const temporalAspects = Array.from({ length: 4 }, (_, index) => state.profile.temporalAspects[index] ?? "");
+            this.elements.temporalAspectsNote.textContent = `${temporalAspects.filter(item => String(item).trim()).length}/4`;
             const milestones = Array.from({ length: 6 }, (_, index) => state.profile.milestones[index] ?? "");
             this.elements.milestonesNote.textContent = `${milestones.filter(item => String(item).trim()).length}/6`;
             if (state.activeForm === "human") {

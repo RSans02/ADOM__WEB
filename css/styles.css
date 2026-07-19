@@ -290,6 +290,14 @@ input[type="checkbox"] {
     background: transparent;
 }
 
+.app-shell[data-viewer="true"] .anchor-cell {
+    cursor: default;
+}
+
+.app-shell[data-viewer="true"] .anchor-cell input:disabled {
+    opacity: 0;
+}
+
 /* Quita esta regla para volver a mostrar el indicador de guardado de la cabecera. */
 .save-status {
     display: none;
@@ -392,22 +400,15 @@ input[type="checkbox"] {
     box-shadow: var(--shadow);
 }
 
-.appearance-card h2 {
-    margin: 0;
-    color: var(--accent-strong);
-    font-size: 0.86rem;
-}
-
-.appearance-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.appearance-reset-button {
+.card-header .appearance-reset-button {
     flex: 0 0 auto;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.card-header .appearance-reset-button:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.24);
 }
 
 .color-setting {
@@ -527,12 +528,13 @@ input[type="checkbox"] {
     font-size: 0.78rem;
     font-weight: 900;
     padding-left: 6px;
+    padding-top: 2px;
 }
 
 .stat-row input {
     min-height: 30px;
     padding: 4px 6px;
-    border-color: transparent;
+    /* border-color: transparent; */
     background: transparent;
 }
 
@@ -597,7 +599,7 @@ input[type="checkbox"] {
 }
 
 #skillsList {
-    padding-block:  0px;
+    padding: 0px 10px;
 }
 
 .icon-button {
@@ -682,7 +684,8 @@ input[type="checkbox"] {
     border-radius: 8px;
 }
 
-.skill-block.is-dragging {
+.skill-block.is-dragging,
+.attribute-row.is-dragging {
     z-index: 2;
     opacity: 0.42;
     outline: 2px dashed var(--accent);
@@ -690,7 +693,8 @@ input[type="checkbox"] {
     background: rgba(var(--accent-rgb), 0.08);
 }
 
-.skill-block.skill-drop-settle {
+.skill-block.skill-drop-settle,
+.attribute-row.skill-drop-settle {
     animation: skill-drop-settle 360ms cubic-bezier(.2,.8,.2,1);
 }
 
@@ -804,6 +808,9 @@ input[type="checkbox"] {
 
 .wound-description {
     min-width: 0;
+    min-height: 30px;
+    padding: 4px 5px;
+    font-size: 0.74rem;
 }
 
 .wound-row span {
@@ -834,6 +841,54 @@ input[type="checkbox"] {
     color: var(--accent-strong);
     font-size: 0.72rem;
     font-weight: 850;
+}
+
+.weapon-damage-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.damage-formula-help {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    cursor: help;
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
+.damage-formula-help::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 7px);
+    left: 50%;
+    width: max-content;
+    max-width: 230px;
+    padding: 7px 9px;
+    border-radius: 7px;
+    color: #fff;
+    background: var(--ink);
+    box-shadow: 0 7px 18px rgba(0, 0, 0, 0.18);
+    font-size: 0.69rem;
+    font-weight: 650;
+    line-height: 1.35;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -3px);
+    transition: opacity var(--transition), transform var(--transition);
+}
+
+.damage-formula-help:hover::after,
+.damage-formula-help:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
 }
 
 .weapon-row {
@@ -885,7 +940,13 @@ input[type="checkbox"] {
 }
 
 .bond-row {
-    padding: 5px 0;
+    padding: 3px 0;
+}
+
+.bond-row input {
+    min-height: 30px;
+    padding: 3px 6px;
+    font-size: 0.74rem;
 }
 
 .bond-derived {
@@ -989,7 +1050,6 @@ input[type="checkbox"] {
 }
 
 .roll20-card,
-.appearance-card,
 .help-card {
     padding: 14px;
     background: rgba(255, 255, 255, 0.86);
@@ -1207,7 +1267,7 @@ input[type="checkbox"] {
 
     .bond-row {
         grid-template-columns: minmax(0, 1fr) 58px 28px;
-        padding: 9px 0;
+        padding: 5px 0;
     }
 
     .bond-row .bond-derived {
@@ -1216,7 +1276,24 @@ input[type="checkbox"] {
 }
 
 
-/* Habilidades y talentos integrados */
+/* Atributos, habilidades y talentos integrados */
+.attribute-row {
+    grid-template-columns: 70px minmax(0, 1fr) 48px 32px;
+    min-height: 39px;
+}
+
+.attribute-leading {
+    display: grid;
+    grid-template-columns: 22px 32px;
+    align-items: center;
+    gap: 5px;
+    min-height: 39px;
+}
+
+.attribute-leading .skill-drag-handle {
+    height: 28px;
+}
+
 .skill-block {
     --skill-input-offset: 48px;
     border-bottom: 1px solid var(--line);
@@ -1255,24 +1332,37 @@ input[type="checkbox"] {
     .skill-block {
         --skill-input-offset: 44px;
     }
+    .skill-main-row {
+        grid-template-columns: 38px minmax(0, 1fr) 44px 30px;
+    }
+    .attribute-row {
+        grid-template-columns: 64px minmax(0, 1fr) 44px 30px;
+    }
 }
 
 /* Filas fijas */
 .fixed-row {
     display: grid;
-    grid-template-columns: 28px minmax(0, 1fr);
-    gap: 0.5rem;
+    grid-template-columns: 24px minmax(0, 1fr);
+    gap: 4px;
     align-items: center;
+}
+
+.fixed-row input {
+    min-width: 0;
+    min-height: 30px;
+    padding: 4px 5px;
+    font-size: 0.74rem;
 }
 .fixed-row-number {
     display: grid;
     place-items: center;
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     border-radius: 999px;
     background: var(--soft-accent);
     font-weight: 800;
-    font-size: 0.76rem;
+    font-size: 0.7rem;
 }
 
 /* Lazos: 8 filas humanas; éxtasis refleja únicamente el ancla humana. */
@@ -1632,6 +1722,14 @@ input[type="checkbox"] {
     gap: 5px;
     display: flex;
     flex-direction: column;
+}
+
+#attributesList,
+#temporalAspectsList{
+    display: grid;
+    grid-template-rows: repeat(4, 39px);
+    height: 166px;
+    padding: 5px 10px;
 }
 
 @media (max-width: 650px) {
