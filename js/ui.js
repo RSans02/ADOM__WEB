@@ -888,7 +888,8 @@
             const attribute = form.attributes[attributeIndex];
             const modifier = ADOM.Calculations.number(skill.value) + ADOM.Calculations.number(attribute.value);
             const safeWeaponName = this.sanitizeChatText(weapon.name || "Ataque");
-            const command = `[[${damage.values.c}+${modifier}]] Daño -> ${damage.total}`;
+            const diceText = `${dice.join(", ")} (m=${damage.values.m}, c=${damage.values.c}, M=${damage.values.M})`;
+            const command = `Dados -> ${diceText} | Tirada -> [[${damage.values.c}+${modifier}]] | Daño -> ${damage.total}`;
             await this.sendRollCommand(command, safeWeaponName);
         }
 
