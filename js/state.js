@@ -417,10 +417,10 @@
         load() {
             try {
                 const raw = global.localStorage.getItem(STORAGE_KEY);
-                return raw ? normalizeState(JSON.parse(raw)) : createDefaultState();
+                return raw ? normalizeState(JSON.parse(raw)) : createEmptyState();
             } catch (error) {
                 console.warn("[ADOM] No se pudo cargar el personaje guardado.", error);
-                return createDefaultState();
+                return createEmptyState();
             }
         }
 
