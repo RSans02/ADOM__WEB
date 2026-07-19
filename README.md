@@ -36,6 +36,7 @@ El userscript debe incluir:
 - Atributos, habilidades, talentos, hitos, drama, salud, armas, distorsión, lazos y habilidades arcanas.
 - Cálculos automáticos extraídos de las fórmulas del Excel.
 - Guardado automático con `localStorage`.
+- La primera visita carga una ficha vacía si el navegador no tiene ningún personaje guardado.
 - Importación y exportación del personaje en JSON.
 - Envío de comandos manuales al chat de Roll20.
 - Botones de tirada en atributos y habilidades.
