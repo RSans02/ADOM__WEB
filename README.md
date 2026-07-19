@@ -97,6 +97,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Antes de una tirada de habilidad, la ficha pide el atributo, permite elegir uno de los talentos de la habilidad y ofrece un modificador extra temporal que empieza siempre en 0.
 - En las tiradas de armas y ataques se elige primero el atributo y después la habilidad.
 - La primera habilidad arcana es siempre la innata y no se puede eliminar.
+- La primera fila de armas o ataques siempre existe y no se puede eliminar.
 - Las tiradas de atributo conservan el dado base interno existente.
 
 - Los lazos vacíos no suman experiencia.

@@ -749,7 +749,7 @@
                             <option value="melee" ${weapon.damageType === "melee" ? "selected" : ""}>Cuerpo a cuerpo</option>
                         </select>
                         <button class="roll-button" type="button" title="Tirar daño" aria-label="Tirar daño de ${escapeHtml(weapon.name || "arma")}" data-action="roll-weapon" data-index="${index}">${diceIcon()}</button>
-                        <button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar arma" data-action="remove-weapon" data-index="${index}">×</button>
+                        ${index === 0 ? "" : `<button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar arma" data-action="remove-weapon" data-index="${index}">×</button>`}
                     </div>
                 `).join("")}
             `;
@@ -1006,6 +1006,10 @@
                 if (!global.confirm(`¿Seguro que quieres vaciar el aspecto${aspect?.trim() ? ` «${aspect.trim()}»` : ""}?`)) return;
             }
             if (action === "remove-weapon") {
+                if (index === 0) {
+                    this.showToast("La primera arma no se puede eliminar.", "info");
+                    return;
+                }
                 const weapon = this.store.getState().human.weapons[index];
                 if (!global.confirm(`¿Seguro que quieres eliminar el arma${weapon?.name?.trim() ? ` «${weapon.name.trim()}»` : ""}?`)) return;
             }

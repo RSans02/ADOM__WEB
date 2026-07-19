@@ -36,7 +36,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 18,
+            schemaVersion: 19,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -244,7 +244,10 @@
             rd: normalizeNonNegativeNumber(form.rd, 0),
             weapons: defaultForm.weapons.length === 0
                 ? []
-                : (Array.isArray(form.weapons) ? normalizeWeapons(form.weapons) : clone(defaultForm.weapons)),
+                : (() => {
+                    const weapons = Array.isArray(form.weapons) ? normalizeWeapons(form.weapons) : clone(defaultForm.weapons);
+                    return weapons.length ? weapons : clone(defaultForm.weapons);
+                })(),
             health: {
                 ...clone(defaultForm.health),
                 ...(form.health || {}),
@@ -322,7 +325,7 @@
         }
 
         return {
-            schemaVersion: 18,
+            schemaVersion: 19,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,
