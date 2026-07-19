@@ -527,7 +527,7 @@
                 shareState.profile.imageUrl = renderedImageUrl;
             }
 
-            const payload = ADOM.State.encodeShareState(shareState);
+            const payload = await ADOM.State.encodeShareState(shareState);
             const baseUrl = global.location.href.split("#")[0];
             const shareUrl = `${baseUrl}#view=${payload}`;
             let copied = false;

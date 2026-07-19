@@ -343,18 +343,45 @@
         };
     }
 
-    function encodeShareState(state) {
-        const bytes = new TextEncoder().encode(JSON.stringify(normalizeState(state)));
+    function encodeBase64Url(bytes) {
         let binary = "";
         bytes.forEach(byte => { binary += String.fromCharCode(byte); });
         return global.btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
     }
 
-    function decodeShareState(payload) {
-        const normalizedPayload = String(payload || "").replaceAll("-", "+").replaceAll("_", "/");
+    function decodeBase64Url(payload) {
+        const normalizedPayload = String(payload).replaceAll("-", "+").replaceAll("_", "/");
         const paddedPayload = normalizedPayload.padEnd(Math.ceil(normalizedPayload.length / 4) * 4, "=");
         const binary = global.atob(paddedPayload);
-        const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+        return Uint8Array.from(binary, character => character.charCodeAt(0));
+    }
+
+    async function transformBytes(bytes, StreamConstructor, format) {
+        const stream = new Blob([bytes]).stream().pipeThrough(new StreamConstructor(format));
+        return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+
+    async function encodeShareState(state) {
+        const bytes = new TextEncoder().encode(JSON.stringify(normalizeState(state)));
+        if (typeof global.CompressionStream === "function") {
+            const compressed = await transformBytes(bytes, global.CompressionStream, "gzip");
+            return `z${encodeBase64Url(compressed)}`;
+        }
+        return `j${encodeBase64Url(bytes)}`;
+    }
+
+    async function decodeShareState(payload) {
+        const value = String(payload || "");
+        let bytes;
+        if (value.startsWith("z")) {
+            if (typeof global.DecompressionStream !== "function") {
+                throw new Error("Este navegador no puede descomprimir el enlace compartido.");
+            }
+            bytes = await transformBytes(decodeBase64Url(value.slice(1)), global.DecompressionStream, "gzip");
+        } else {
+            // Los enlaces antiguos no llevaban prefijo; `j` identifica el nuevo formato sin comprimir.
+            bytes = decodeBase64Url(value.startsWith("j") ? value.slice(1) : value);
+        }
         return normalizeState(JSON.parse(new TextDecoder().decode(bytes)));
     }
 

@@ -101,7 +101,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Los controles de la imagen permanecen bloqueados y ocultos hasta hacer doble clic sobre la foto; otro doble clic vuelve a bloquearlos.
 - El marco de la imagen puede mostrarse cuadrado o en formato vertical 3:4.
 - Los colores principales y de fondo de la forma humana y la forma de éxtasis se pueden configurar por separado.
-- El botón Compartir copia un enlace de solo lectura sin edición ni tiradas e incluye la foto, su encuadre, marco, colores y el resto de la ficha. Para usarlo entre equipos, la aplicación debe estar publicada por HTTP/HTTPS y la foto debe usar una URL pública directa.
+- El botón Compartir copia un enlace comprimido de solo lectura sin edición ni tiradas e incluye la foto, su encuadre, marco, colores y el resto de la ficha. Los enlaces antiguos sin comprimir siguen siendo compatibles. Para usarlo entre equipos, la aplicación debe estar publicada por HTTP/HTTPS y la foto debe usar una URL pública directa.
 - El daño usa fórmulas como `MMm+5`: `m`, `c` y `M` representan el dado menor, central y mayor de una única tirada de 3d10.
 - Armas y ataques son compartidos entre la forma humana y la forma de éxtasis.
 - La forma humana conserva 8 lazos. Éxtasis refleja el lazo humano marcado como ancla; si no hay ancla, no muestra ninguno.

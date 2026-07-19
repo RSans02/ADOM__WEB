@@ -1,13 +1,13 @@
 (function (global) {
     "use strict";
 
-    function initialize() {
+    async function initialize() {
         const hashParameters = new URLSearchParams(global.location.hash.slice(1));
         const sharedPayload = hashParameters.get("view");
         let sharedState = null;
         if (sharedPayload) {
             try {
-                sharedState = global.ADOM.State.decodeShareState(sharedPayload);
+                sharedState = await global.ADOM.State.decodeShareState(sharedPayload);
             } catch (error) {
                 console.warn("[ADOM] El enlace compartido no es válido.", error);
             }
