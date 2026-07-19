@@ -36,7 +36,7 @@
         const attributesTotal = sum(form.attributes, item => item.value);
         const skillsTotal = sum(form.skills, item => item.value);
         const talentsTotal = countTalents(form.skills);
-        const bondsTotal = sum(form.bonds, item => item.level);
+        const bondsTotal = sum(form.bonds.filter(item => String(item.name || "").trim()), item => item.level);
         const arcaneTotal = formKey === "ecstasy" ? sum(form.arcaneSkills || [], item => item.value) : 0;
 
         const strength = findValue(form.attributes, "strength");
@@ -58,7 +58,7 @@
             + bondsTotal * 5
             + arcaneTotal * 5;
 
-        const humanBondsTotal = sum(state.human.bonds, item => item.level);
+        const humanBondsTotal = sum(state.human.bonds.filter(item => String(item.name || "").trim()), item => item.level);
         const adjustedExperience = formKey === "ecstasy"
             ? experience - number(state.distortion.level) * 30 + humanBondsTotal * 5
             : experience;

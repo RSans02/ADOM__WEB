@@ -12,6 +12,17 @@
             .replaceAll("'", "&#039;");
     }
 
+    function diceIcon() {
+        return `<svg class="dice-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <rect x="3" y="3" width="18" height="18" rx="4"></rect>
+            <circle cx="8" cy="8" r="1.45"></circle>
+            <circle cx="16" cy="8" r="1.45"></circle>
+            <circle cx="12" cy="12" r="1.45"></circle>
+            <circle cx="8" cy="16" r="1.45"></circle>
+            <circle cx="16" cy="16" r="1.45"></circle>
+        </svg>`;
+    }
+
     class SheetUI {
         constructor(store, bridge) {
             this.store = store;
@@ -32,7 +43,7 @@
         collectElements() {
             const ids = [
                 "appShell", "humanTab", "ecstasyTab", "saveStatus", "exportButton", "importInput", "resetButton",
-                "characterName", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
+                "characterName", "characterImageUrl", "characterPortrait", "characterPortraitPlaceholder", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
                 "skillsList", "skillsTotal", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
@@ -48,6 +59,23 @@
             this.elements.ecstasyTab.addEventListener("click", () => this.setActiveForm("ecstasy"));
 
             this.bindTextInput(this.elements.characterName, state => state.profile.name, (state, value) => { state.profile.name = value; });
+            this.elements.applyImageUrlButton.addEventListener("click", () => this.applyCharacterImageUrl());
+            this.elements.clearImageUrlButton.addEventListener("click", () => this.clearCharacterImageUrl());
+            this.elements.characterImageUrl.addEventListener("keydown", event => {
+                if (event.key === "Enter") {
+                    event.preventDefault();
+                    this.applyCharacterImageUrl();
+                }
+            });
+            this.elements.characterPortrait.addEventListener("error", () => {
+                this.elements.characterPortrait.hidden = true;
+                this.elements.characterPortraitPlaceholder.hidden = false;
+                this.showToast("La imagen no se pudo cargar. Comprueba que la URL sea pública y directa.", "error");
+            });
+            this.elements.characterPortrait.addEventListener("load", () => {
+                this.elements.characterPortrait.hidden = false;
+                this.elements.characterPortraitPlaceholder.hidden = true;
+            });
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
             this.bindTextInput(this.elements.baseDieInput, state => state.settings.baseDie, (state, value) => { state.settings.baseDie = value; });
@@ -97,6 +125,7 @@
 
             this.elements.appShell.dataset.form = formKey;
             this.renderTabs(formKey);
+            this.renderCharacterPortrait(state.profile);
             this.syncStaticFields(state, form);
             this.renderAttributes(form, derived);
             this.renderSkills(form, derived);
@@ -159,6 +188,7 @@
 
         syncStaticFields(state, form) {
             this.syncInput(this.elements.characterName, state.profile.name);
+            this.syncInput(this.elements.characterImageUrl, state.profile.imageUrl);
             this.syncInput(this.elements.characterConcept, state.profile.concept);
             this.syncInput(this.elements.characterComplication, state.profile.complication);
             this.syncInput(this.elements.extraExperience, form.extraExperience);
@@ -171,6 +201,35 @@
             }
         }
 
+        renderCharacterPortrait(profile) {
+            const url = String(profile.imageUrl || "").trim();
+            if (!url) {
+                this.elements.characterPortrait.removeAttribute("src");
+                this.elements.characterPortrait.hidden = true;
+                this.elements.characterPortraitPlaceholder.hidden = false;
+                return;
+            }
+            if (this.elements.characterPortrait.src !== url) {
+                this.elements.characterPortrait.hidden = true;
+                this.elements.characterPortraitPlaceholder.hidden = false;
+                this.elements.characterPortrait.src = url;
+            }
+        }
+
+        applyCharacterImageUrl() {
+            const url = this.elements.characterImageUrl.value.trim();
+            if (url && !/^https?:\/\//i.test(url)) {
+                this.showToast("La imagen debe usar una URL pública que empiece por http:// o https://.", "error");
+                return;
+            }
+            this.store.update(state => { state.profile.imageUrl = url; });
+        }
+
+        clearCharacterImageUrl() {
+            this.elements.characterImageUrl.value = "";
+            this.store.update(state => { state.profile.imageUrl = ""; });
+        }
+
         renderAttributes(form, derived) {
             this.elements.attributesTotal.textContent = derived.attributesTotal;
             this.elements.attributesList.innerHTML = form.attributes.map((attribute, index) => `
@@ -178,7 +237,7 @@
                     <span class="stat-code">${escapeHtml(attribute.code)}</span>
                     <input type="text" value="${escapeHtml(attribute.descriptor)}" aria-label="Descriptor de ${escapeHtml(attribute.code)}" data-action="attribute-descriptor" data-index="${index}">
                     <input class="stat-value" type="number" min="0" step="1" value="${attribute.value}" aria-label="Valor de ${escapeHtml(attribute.code)}" data-action="attribute-value" data-index="${index}">
-                    <button class="roll-button" type="button" title="Lanzar dado base + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">d</button>
+                    <button class="roll-button" type="button" title="Lanzar dado base + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">${diceIcon()}</button>
                 </div>
             `).join("");
             this.bindDynamicContainer(this.elements.attributesList);
@@ -192,7 +251,7 @@
                         <span class="stat-code">↳</span>
                         <input type="text" value="${escapeHtml(skill.label)}" aria-label="Nombre de habilidad" data-action="skill-label" data-index="${index}">
                         <input class="stat-value" type="number" min="0" step="1" value="${skill.value}" aria-label="Valor de ${escapeHtml(skill.label)}" data-action="skill-value" data-index="${index}">
-                        <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">d</button>
+                        <button class="roll-button" type="button" title="Tirar habilidad y elegir atributo" aria-label="Tirar ${escapeHtml(skill.label)}" data-action="roll-stat" data-kind="skill" data-index="${index}">${diceIcon()}</button>
                     </div>
                     <div class="skill-talents" aria-label="Talentos de ${escapeHtml(skill.label)}">
                         <span class="skill-talents-label">Talentos</span>
@@ -266,7 +325,7 @@
                     <div class="weapon-row">
                         <input type="text" value="${escapeHtml(weapon.name)}" placeholder="Nombre" data-action="weapon-name" data-index="${index}">
                         <input type="text" value="${escapeHtml(weapon.damage)}" placeholder="1d6+1" data-action="weapon-damage" data-index="${index}">
-                        <button class="roll-button" type="button" title="Tirar daño" aria-label="Tirar daño de ${escapeHtml(weapon.name || "arma")}" data-action="roll-weapon" data-index="${index}">d</button>
+                        <button class="roll-button" type="button" title="Tirar daño" aria-label="Tirar daño de ${escapeHtml(weapon.name || "arma")}" data-action="roll-weapon" data-index="${index}">${diceIcon()}</button>
                         <button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar arma" data-action="remove-weapon" data-index="${index}">×</button>
                     </div>
                 `).join("")}

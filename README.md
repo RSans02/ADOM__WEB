@@ -49,7 +49,7 @@ El userscript debe incluir:
 - Umbral de herida: `FOR + VOL / 2`, redondeado hacia abajo.
 - Resistencia total: `Umbral de herida × 3`.
 - Salida de éxtasis: `10 + nivel de distorsión`.
-- XP humana: atributos × 15 + habilidades × 5 + talentos × 10 + lazos × 5 + experiencia libre.
+- XP humana: atributos × 15 + habilidades × 5 + talentos integrados × 10 + lazos con nombre × 5 + experiencia libre.
 - XP de éxtasis: lo anterior, sustituyendo lazos por habilidades arcanas × 5.
 - Comparación de éxtasis: XP de éxtasis − distorsión × 30 + lazos humanos × 5.
 
@@ -89,3 +89,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Las habilidades tiran `/roll {3d10dh1}kh1+MODIFICADOR`.
 - Antes de una tirada de habilidad, la ficha pide el atributo y suma atributo + habilidad.
 - Las tiradas de atributo conservan el dado base configurado en el panel de Roll20.
+
+- Los lazos vacíos no suman experiencia.
+- La ficha admite una imagen de personaje mediante URL pública directa.
+- Los botones de tirada muestran un icono de dado.

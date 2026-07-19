@@ -36,10 +36,11 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 2,
+            schemaVersion: 3,
             activeForm: "human",
             profile: {
                 name: "Lluvia Clara",
+                imageUrl: "",
                 concept: "Solitaria soñadora",
                 complication: "Dispersa",
                 temporalAspects: ["", "", "", ""],
@@ -190,10 +191,11 @@
         }
 
         return {
-            schemaVersion: 2,
+            schemaVersion: 3,
             activeForm: candidate.activeForm === "ecstasy" ? "ecstasy" : "human",
             profile: {
                 name: String(candidate.profile?.name ?? defaults.profile.name),
+                imageUrl: String(candidate.profile?.imageUrl ?? defaults.profile.imageUrl),
                 concept: String(candidate.profile?.concept ?? defaults.profile.concept),
                 complication: String(candidate.profile?.complication ?? defaults.profile.complication),
                 temporalAspects: normalizeStringArray(candidate.profile?.temporalAspects, defaults.profile.temporalAspects),

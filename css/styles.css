@@ -1124,3 +1124,78 @@ input[type="checkbox"] {
     }
     #bondsPanel { overflow-x: auto; }
 }
+
+
+/* Imagen del personaje */
+.character-portrait-card {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 14px;
+    padding: 14px;
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    border-radius: var(--radius);
+    background: var(--surface-muted);
+    box-shadow: var(--shadow);
+}
+.portrait-preview-wrap {
+    position: relative;
+    width: 130px;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    border: 2px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 16px;
+    background: var(--accent-soft);
+}
+.character-portrait {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+.portrait-placeholder {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    color: rgba(var(--accent-rgb), .7);
+    font-family: Georgia, serif;
+    font-size: 4rem;
+    font-weight: 800;
+}
+.portrait-url-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 8px;
+}
+.portrait-url-field small {
+    display: block;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: .74rem;
+}
+
+/* Botones de tirada con dado real */
+.roll-button {
+    display: inline-grid;
+    place-items: center;
+}
+.dice-icon {
+    width: 19px;
+    height: 19px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.75;
+}
+.dice-icon circle {
+    fill: currentColor;
+    stroke: none;
+}
+
+@media (max-width: 650px) {
+    .character-portrait-card { grid-template-columns: 92px minmax(0, 1fr); }
+    .portrait-preview-wrap { width: 92px; }
+    .portrait-url-row { grid-template-columns: 1fr 1fr; }
+    .portrait-url-row input { grid-column: 1 / -1; }
+}

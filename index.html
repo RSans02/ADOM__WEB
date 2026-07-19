@@ -39,6 +39,22 @@
         </header>
 
         <main class="sheet-container">
+            <section class="character-portrait-card" aria-label="Imagen del personaje">
+                <div class="portrait-preview-wrap">
+                    <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje" hidden>
+                    <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A</div>
+                </div>
+                <label class="field portrait-url-field">
+                    <span>URL pública de la imagen</span>
+                    <div class="portrait-url-row">
+                        <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
+                        <button id="applyImageUrlButton" class="button button-secondary" type="button">Mostrar</button>
+                        <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button">Quitar</button>
+                    </div>
+                    <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
+                </label>
+            </section>
+
             <section class="identity-strip" aria-label="Identidad del personaje">
                 <label class="field field-name">
                     <span>Nombre</span>
@@ -88,17 +104,6 @@
                         <div class="card-body repeatable-list" id="temporalAspectsList"></div>
                     </section>
 
-                    <section class="card" aria-labelledby="talentsTitle">
-                        <div class="card-header">
-                            <h2 id="talentsTitle">Talentos</h2>
-                            <span class="header-total" id="talentsTotal">0</span>
-                        </div>
-                        <div class="card-body repeatable-list" id="talentsList"></div>
-                        <div class="card-footer">
-                            <button class="text-button" id="addTalentButton" type="button">+ Añadir talento</button>
-                        </div>
-                    </section>
-
                     <section class="card card-inline" aria-labelledby="dramaTitle">
                         <div class="card-header">
                             <h2 id="dramaTitle">Drama</h2>
@@ -120,9 +125,6 @@
                             <h2 id="milestonesTitle">Hitos</h2><span class="header-note">6 fijos</span>
                         </div>
                         <div class="card-body repeatable-list" id="milestonesList"></div>
-                        <div class="card-footer">
-                            <button class="text-button" id="addMilestoneButton" type="button">+ Añadir hito</button>
-                        </div>
                     </section>
                 </div>
 
@@ -158,12 +160,9 @@
                     <section class="card" aria-labelledby="bondsTitle">
                         <div class="card-header">
                             <h2 id="bondsTitle">Lazos</h2>
-                            <span class="header-note">mín. 1</span>
+                            <span class="header-note">8 fijos</span>
                         </div>
                         <div class="card-body" id="bondsPanel"></div>
-                        <div class="card-footer">
-                            <button class="text-button" id="addBondButton" type="button">+ Añadir lazo</button>
-                        </div>
                     </section>
                 </div>
 
