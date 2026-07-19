@@ -93,3 +93,5 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - Los lazos vacíos no suman experiencia.
 - La ficha admite una imagen de personaje mediante URL pública directa.
 - Los botones de tirada muestran un icono de dado.
+
+- El bloque de Salud se ha recolocado debajo de Hitos para aprovechar mejor el espacio.
