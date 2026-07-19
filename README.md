@@ -20,16 +20,15 @@ La ficha utiliza el protocolo ya validado:
 
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
-- Tipos de mensaje: `CHAT_COMMAND` y `DAMAGE_ROLL`
-- Versión del protocolo: `2`
+- Tipo de mensaje: `CHAT_COMMAND`
+- Versión del protocolo: `1`
 
 El userscript debe incluir:
 
 ```javascript
 // @match        file:///C:/ADOM__WEB/*
+// @match        https://adom-web.vercel.app/*
 ```
-
-Instala o sustituye el userscript por `tampermonkey/adom-roll20-bridge.user.js`. No mantengas simultáneamente la versión antigua, porque ambos scripts podrían duplicar los comandos de chat.
 
 ## Funciones incluidas
 
@@ -63,7 +62,7 @@ Las habilidades usan:
 {3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-Los atributos conservan internamente el dado base existente. Para el daño, el userscript solicita a Roll20 una tirada real de `3d10`, recupera sus tres resultados y los devuelve a la ficha antes de enviar el comentario con la tirada y el daño calculado.
+Los atributos conservan internamente el dado base existente. Para el daño, la ficha genera una única tirada de `3d10`, ordena sus resultados como `m`, `c` y `M`, calcula la tirada y el daño, y envía el resultado al chat mediante el bridge existente.
 
 ## Estructura
 
@@ -77,8 +76,6 @@ js/
   roll20-bridge.js
   ui.js
   app.js
-tampermonkey/
-  adom-roll20-bridge.user.js
 ```
 
 No se usan librerías externas, compiladores ni servidor. Los archivos JavaScript se cargan como scripts clásicos para que la ficha siga funcionando mediante `file:///`.

@@ -9,8 +9,7 @@
     });
 
     const MESSAGE_TYPES = Object.freeze({
-        CHAT_COMMAND: "CHAT_COMMAND",
-        DAMAGE_ROLL: "DAMAGE_ROLL"
+        CHAT_COMMAND: "CHAT_COMMAND"
     });
 
     function uniqueId() {
@@ -23,7 +22,7 @@
     class Roll20Bridge extends EventTarget {
         constructor(options) {
             super();
-            this.protocolVersion = 2;
+            this.protocolVersion = 1;
             this.timeoutMs = options?.timeoutMs || 8000;
             this.pending = new Map();
             global.addEventListener(EVENTS.RESPONSE, event => this.handleResponse(event));
@@ -35,26 +34,10 @@
                 return Promise.reject(new Error("El comando está vacío."));
             }
 
-            return this.sendRequest(MESSAGE_TYPES.CHAT_COMMAND, { command: normalized });
-        }
-
-        rollThreeD10() {
-            return this.sendRequest(MESSAGE_TYPES.DAMAGE_ROLL, { dice: "3d10" }).then(response => {
-                const dice = response?.payload?.dice;
-                const valid = Array.isArray(dice)
-                    && dice.length === 3
-                    && dice.every(die => Number.isInteger(die) && die >= 1 && die <= 10);
-                if (!valid) throw new Error("Roll20 no devolvió los tres resultados individuales.");
-                return dice;
-            });
-        }
-
-        sendRequest(type, payload) {
-
             const message = {
                 id: uniqueId(),
-                type,
-                payload,
+                type: MESSAGE_TYPES.CHAT_COMMAND,
+                payload: { command: normalized },
                 metadata: {
                     source: "ADOM_EXTERNAL_SHEET",
                     createdAt: Date.now(),
@@ -74,10 +57,7 @@
             });
 
             global.dispatchEvent(new CustomEvent(EVENTS.REQUEST, { detail: message }));
-            const messageText = type === MESSAGE_TYPES.DAMAGE_ROLL
-                ? "Esperando la tirada de Roll20…"
-                : "Enviando comando a Roll20…";
-            this.dispatchEvent(new CustomEvent("status", { detail: { state: "sending", message: messageText } }));
+            this.dispatchEvent(new CustomEvent("status", { detail: { state: "sending", message: "Enviando comando a Roll20…" } }));
             return promise;
         }
 
