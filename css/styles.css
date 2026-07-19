@@ -568,6 +568,11 @@ input[type="checkbox"] {
     min-height: 30px;
 }
 
+#temporalAspectsList .repeatable-row {
+    min-height: 39px;
+    padding: 0;
+}
+
 .icon-button {
     display: grid;
     place-items: center;
