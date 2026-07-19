@@ -107,6 +107,48 @@
         };
     }
 
+    function createEmptyState() {
+        const state = createDefaultState();
+
+        state.drama.fill(false);
+        state.profile.name = "";
+        state.profile.imageUrl = "";
+        state.profile.imageTransform = { x: 0, y: 0, zoom: 1 };
+        state.profile.imageFrame = "square";
+        state.profile.concept = "";
+        state.profile.complication = "";
+        state.profile.temporalAspects.fill("");
+        state.profile.milestones.fill("");
+        state.distortion.level = 0;
+        state.distortion.ecstasyTrack.fill(false);
+
+        [state.human, state.ecstasy].forEach(form => {
+            form.attributes.forEach(attribute => {
+                attribute.descriptor = "";
+                attribute.value = 0;
+            });
+            form.skills.forEach(skill => {
+                skill.value = 0;
+                skill.talents = ["", ""];
+            });
+            form.extraExperience = 0;
+            form.rd = 0;
+            form.health.currentResistance = 0;
+            form.health.lightWounds.fill(false);
+            form.health.severeWounds.fill(false);
+        });
+
+        state.human.weapons = [{ name: "", damage: "" }];
+        state.human.bonds.forEach(bond => {
+            bond.name = "";
+            bond.level = 1;
+            bond.anchor = false;
+        });
+        state.ecstasy.arcaneSkills = [];
+
+        return state;
+    }
+
     function normalizeNumber(value, fallback) {
         const parsed = Number(value);
         return Number.isFinite(parsed) ? parsed : fallback;
@@ -362,15 +404,7 @@
         }
 
         reset() {
-            const preservedImage = {
-                imageUrl: this.state.profile.imageUrl,
-                imageTransform: clone(this.state.profile.imageTransform),
-                imageFrame: this.state.profile.imageFrame
-            };
-            this.state = createDefaultState();
-            this.state.profile.imageUrl = preservedImage.imageUrl;
-            this.state.profile.imageTransform = preservedImage.imageTransform;
-            this.state.profile.imageFrame = preservedImage.imageFrame;
+            this.state = createEmptyState();
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "reset" } }));
             this.save();
         }
@@ -388,6 +422,7 @@
     ADOM.State = Object.freeze({
         STORAGE_KEY,
         createDefaultState,
+        createEmptyState,
         normalizeState,
         encodeShareState,
         decodeShareState,

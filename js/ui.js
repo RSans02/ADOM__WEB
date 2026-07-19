@@ -1080,12 +1080,57 @@
             reader.readAsText(file);
         }
 
-        resetCharacter() {
-            if (!global.confirm("¿Restablecer la ficha al personaje de ejemplo? Se conservarán la imagen y su encuadre, pero se perderán los demás cambios guardados.")) {
-                return;
-            }
+        confirmReset() {
+            return new Promise(resolve => {
+                const backdrop = document.createElement("div");
+                backdrop.className = "attribute-picker-backdrop";
+                backdrop.innerHTML = `
+                    <form class="attribute-picker reset-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
+                        <h2 id="resetConfirmTitle">Restablecer toda la ficha</h2>
+                        <p>Esta acción vaciará todos los datos, incluida la imagen. Para continuar, escribe <strong>RESTABLECER</strong>.</p>
+                        <label class="field">
+                            <span>Confirmación</span>
+                            <input type="text" class="reset-confirm-input" autocomplete="off" spellcheck="false" placeholder="RESTABLECER">
+                        </label>
+                        <div class="reset-confirm-actions">
+                            <button type="button" class="button button-secondary reset-confirm-cancel">Cancelar</button>
+                            <button type="submit" class="button button-danger reset-confirm-submit" disabled>Restablecer todo</button>
+                        </div>
+                    </form>
+                `;
+
+                const input = backdrop.querySelector(".reset-confirm-input");
+                const submitButton = backdrop.querySelector(".reset-confirm-submit");
+                const close = confirmed => {
+                    document.removeEventListener("keydown", onKeyDown);
+                    backdrop.remove();
+                    resolve(confirmed);
+                };
+                const onKeyDown = event => {
+                    if (event.key === "Escape") close(false);
+                };
+
+                input.addEventListener("input", () => {
+                    submitButton.disabled = input.value !== "RESTABLECER";
+                });
+                backdrop.addEventListener("click", event => {
+                    if (event.target === backdrop || event.target.closest(".reset-confirm-cancel")) close(false);
+                });
+                backdrop.querySelector("form").addEventListener("submit", event => {
+                    event.preventDefault();
+                    if (input.value === "RESTABLECER") close(true);
+                });
+
+                document.addEventListener("keydown", onKeyDown);
+                document.body.appendChild(backdrop);
+                input.focus();
+            });
+        }
+
+        async resetCharacter() {
+            if (!await this.confirmReset()) return;
             this.store.reset();
-            this.showToast("Ficha restablecida.", "success");
+            this.showToast("Ficha vaciada por completo.", "success");
         }
 
         showToast(message, type) {

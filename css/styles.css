@@ -283,7 +283,7 @@ input[type="checkbox"] {
 .app-shell[data-viewer="true"] select:disabled {
     opacity: 1;
     color: var(--ink);
-    border-color: transparent;
+    border-color: var(--line);
     background: transparent;
 }
 
@@ -1276,6 +1276,37 @@ input[type="checkbox"] {
 }
 .attribute-option strong,
 .attribute-option b { color: var(--accent); }
+
+.reset-confirm-dialog {
+    width: min(460px, 100%);
+}
+
+.reset-confirm-dialog strong {
+    color: var(--danger);
+}
+
+.reset-confirm-input {
+    min-height: 40px;
+    padding: 8px 10px;
+}
+
+.reset-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 1rem;
+}
+
+.reset-confirm-submit {
+    border-color: rgba(159, 49, 64, 0.3);
+    background: rgba(159, 49, 64, 0.08);
+}
+
+.reset-confirm-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
 
 @media (max-width: 620px) {
     .skill-talents {
