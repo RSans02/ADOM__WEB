@@ -887,14 +887,8 @@
             const skill = form.skills[skillIndex];
             const attribute = form.attributes[attributeIndex];
             const modifier = ADOM.Calculations.number(skill.value) + ADOM.Calculations.number(attribute.value);
-            const checkTotal = damage.values.c + modifier;
             const safeWeaponName = this.sanitizeChatText(weapon.name || "Ataque");
-            const safeSkill = this.sanitizeChatText(skill.label);
-            const safeAttribute = this.sanitizeChatText(attribute.code);
-            const diceBreakdown = `m=${damage.values.m}, c=${damage.values.c}, M=${damage.values.M}`;
-            const selectedBreakdown = damage.selectedDice.join(" + ");
-            const bonusText = damage.bonus >= 0 ? ` + ${damage.bonus}` : ` - ${Math.abs(damage.bonus)}`;
-            const command = `/em ${safeWeaponName} — Dados: ${dice.join(", ")} (${diceBreakdown}) | Prueba ${safeSkill} + ${safeAttribute}: ${damage.values.c} + ${modifier} = ${checkTotal} | Daño ${formula}: ${selectedBreakdown}${bonusText} = ${damage.total}`;
+            const command = `[[${damage.values.c}+${modifier}]] Daño -> ${damage.total}`;
             await this.sendRollCommand(command, safeWeaponName);
         }
 
