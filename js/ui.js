@@ -1234,7 +1234,8 @@
             try {
                 dice = await this.bridge.rollDamageDice(
                     ADOM.Calculations.number(skill.value),
-                    ADOM.Calculations.number(attribute.value)
+                    ADOM.Calculations.number(attribute.value),
+                    weapon.name
                 );
             } catch (error) {
                 this.showToast(error.message, "error");
@@ -1248,7 +1249,7 @@
                 return;
             }
             const safeWeaponName = this.sanitizeChatText(weapon.name || "Ataque");
-            await this.sendRollCommand(`Daño -> ${damage.total}`, safeWeaponName);
+            await this.sendRollCommand(`${safeWeaponName}: Daño -> ${damage.total}`, safeWeaponName);
         }
 
         sanitizeChatText(value) {

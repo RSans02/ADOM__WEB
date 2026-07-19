@@ -42,12 +42,13 @@
             );
         }
 
-        async rollDamageDice(skillValue, attributeValue) {
+        async rollDamageDice(skillValue, attributeValue, weaponName = "") {
             const response = await this.sendRequest(
                 MESSAGE_TYPES.DAMAGE_ROLL,
                 {
                     skillValue: Number(skillValue) || 0,
-                    attributeValue: Number(attributeValue) || 0
+                    attributeValue: Number(attributeValue) || 0,
+                    weaponName: String(weaponName || "")
                 },
                 "Esperando la tirada de Roll20…"
             );

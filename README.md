@@ -62,7 +62,7 @@ Las habilidades usan:
 {3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat y la ficha los ordena como `m`, `c` y `M`. La fórmula del arma solo contiene esos símbolos; después se suma automáticamente el daño a distancia o cuerpo a cuerpo elegido en su selector y se envía al chat `Daño -> resultado`.
+Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa con el nombre del arma, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat y la ficha los ordena como `m`, `c` y `M`. La fórmula del arma solo contiene esos símbolos; después se suma automáticamente el daño a distancia o cuerpo a cuerpo elegido en su selector y se envía al chat `Nombre del arma: Daño -> resultado`.
 
 ## Estructura
 

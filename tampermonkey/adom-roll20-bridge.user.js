@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.3.4
+// @version      0.3.5
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 //
 // Ficha externa local:
@@ -326,6 +326,7 @@
     async function handleDamageRoll(message) {
         const skillValue = normalizeModifier(message.payload?.skillValue);
         const attributeValue = normalizeModifier(message.payload?.attributeValue);
+        const weaponName = normalizeRollLabel(message.payload?.weaponName, "Arma");
 
         if (skillValue === null || attributeValue === null) {
             return createErrorResponse({
@@ -335,7 +336,7 @@
             });
         }
 
-        const command = `/roll {3d10dh1}kh1${formatRollModifier(skillValue, "Habilidad")}${formatRollModifier(attributeValue, "Atributo")}`;
+        const command = `/roll {3d10dh1}kh1${formatRollModifier(skillValue, "Habilidad")}${formatRollModifier(attributeValue, "Atributo")}${formatRollModifier(0, `Arma: ${weaponName}`)}`;
         let rollWaiter = null;
 
         try {
@@ -573,6 +574,15 @@
     function formatRollModifier(value, label) {
         const sign = value < 0 ? "-" : "+";
         return `${sign}${Math.abs(value)}[${label}]`;
+    }
+
+    function normalizeRollLabel(value, fallback) {
+        const label = String(value || "")
+            .replace(/[\[\]\r\n|]+/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 80);
+        return label || fallback;
     }
 
     /*
