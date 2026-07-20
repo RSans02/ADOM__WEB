@@ -833,7 +833,7 @@
             this.elements.arcaneTotal.textContent = derived.arcaneTotal;
             this.elements.arcaneSkillsList.innerHTML = (form.arcaneSkills || []).map((item, index) => `
                 <div class="arcane-row">
-                    <input type="text" value="${escapeHtml(item.name)}" placeholder="${index === 0 ? "Habilidad innata" : "Habilidad arcana"}" data-action="arcane-name" data-index="${index}">
+                    <input type="text" value="${escapeHtml(item.name)}" placeholder="${index === 0 ? "Habilidad arcana innata" : "Habilidad arcana aprendida"}" data-action="arcane-name" data-index="${index}">
                     <input type="number" min="0" step="1" value="${item.value}" data-action="arcane-value" data-index="${index}">
                     ${index === 0
                         ? ""
