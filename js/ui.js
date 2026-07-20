@@ -85,7 +85,7 @@
                 "skillsList", "skillsTotal", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
-                "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "adjustedExperienceRow", "adjustedExperience",
+                "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "experienceBreakdownTooltip", "adjustedExperienceRow", "adjustedExperience", "adjustedExperienceBreakdownTooltip",
                 "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus",
                 "bridgeMessage", "formHelp", "toastRegion"
             ];
@@ -247,7 +247,7 @@
             this.renderCombat(form, state.human.weapons, derived);
             this.renderDistortion(state.distortion, derived);
             this.renderArcane(formKey, form, derived);
-            this.renderBonds(formKey, this.getVisibleBonds(state, formKey));
+            this.renderBonds(formKey, this.getVisibleBonds(state, formKey), derived);
             this.renderChecks(formKey, derived);
             this.renderHelp(formKey);
             if (this.viewerMode) this.applyViewerRestrictions();
@@ -276,12 +276,12 @@
             const healthDerived = ADOM.Calculations.deriveForm(state, "human");
 
             this.renderCharacterSelector();
-            this.elements.attributesTotal.textContent = derived.attributesTotal;
-            this.elements.skillsTotal.textContent = derived.skillsTotal;
+            this.renderSpentTotal(this.elements.attributesTotal, derived.attributesTotal, 15, "Atributos");
+            this.renderSpentTotal(this.elements.skillsTotal, derived.skillsTotal, 5, "Habilidades", derived.talentsTotal * 10, "Talentos");
             if (formKey === "ecstasy") {
-                this.elements.arcaneTotal.textContent = derived.arcaneTotal;
+                this.renderSpentTotal(this.elements.arcaneTotal, derived.arcaneTotal, 5, "Habilidades arcanas");
             }
-            this.updateFixedHeaderCounts(state);
+            this.updateFixedHeaderCounts(state, derived);
 
             const outputs = {
                 initiative: derived.initiative,
@@ -615,7 +615,7 @@
         }
 
         renderAttributes(form, derived) {
-            this.elements.attributesTotal.textContent = derived.attributesTotal;
+            this.renderSpentTotal(this.elements.attributesTotal, derived.attributesTotal, 15, "Atributos");
             this.elements.attributesList.innerHTML = form.attributes.map((attribute, index) => `
                 <div class="stat-row attribute-row${this.attributeDropIndex === index ? " skill-drop-settle" : ""}" data-attribute-block>
                     <span class="attribute-leading">
@@ -633,7 +633,7 @@
         }
 
         renderSkills(form, derived) {
-            this.elements.skillsTotal.textContent = derived.skillsTotal;
+            this.renderSpentTotal(this.elements.skillsTotal, derived.skillsTotal, 5, "Habilidades", derived.talentsTotal * 10, "Talentos");
             this.elements.skillsList.innerHTML = form.skills.map((skill, index) => `
                 <div class="skill-block${this.skillDropIndex === index ? " skill-drop-settle" : ""}" data-skill-block>
                     <div class="stat-row skill-main-row">
@@ -719,9 +719,17 @@
             if (kind === "attribute") this.attributeDropIndex = toIndex;
             else this.skillDropIndex = toIndex;
             this.store.update(state => {
-                const items = state[state.activeForm][kind === "attribute" ? "attributes" : "skills"];
+                const listName = kind === "attribute" ? "attributes" : "skills";
+                const items = state[state.activeForm][listName];
                 const [movedItem] = items.splice(fromIndex, 1);
                 items.splice(toIndex, 0, movedItem);
+                const positions = new Map(items.map((item, index) => [item.key, index]));
+                const otherForm = state.activeForm === "human" ? state.ecstasy : state.human;
+                otherForm[listName].sort((left, right) => {
+                    const leftPosition = positions.has(left.key) ? positions.get(left.key) : Number.MAX_SAFE_INTEGER;
+                    const rightPosition = positions.has(right.key) ? positions.get(right.key) : Number.MAX_SAFE_INTEGER;
+                    return leftPosition - rightPosition;
+                });
             }, { source: `drag-reorder-${kind}` });
         }
 
@@ -830,7 +838,7 @@
             if (formKey !== "ecstasy") {
                 return;
             }
-            this.elements.arcaneTotal.textContent = derived.arcaneTotal;
+            this.renderSpentTotal(this.elements.arcaneTotal, derived.arcaneTotal, 5, "Habilidades arcanas");
             this.elements.arcaneSkillsList.innerHTML = (form.arcaneSkills || []).map((item, index) => `
                 <div class="arcane-row">
                     <input type="text" value="${escapeHtml(item.name)}" placeholder="${index === 0 ? "Habilidad arcana innata" : "Habilidad arcana aprendida"}" data-action="arcane-name" data-index="${index}">
@@ -843,7 +851,7 @@
             this.bindDynamicContainer(this.elements.arcaneSkillsList);
         }
 
-        renderBonds(formKey, items) {
+        renderBonds(formKey, items, derived) {
             const isEcstasy = formKey === "ecstasy";
             const count = isEcstasy ? items.length : 8;
             const fixedItems = isEcstasy
@@ -852,7 +860,10 @@
             this.elements.bondsTitle.textContent = isEcstasy ? "Lazo" : "Lazos";
             this.elements.bondsNote.textContent = isEcstasy
                 ? (count ? "Ancla humana" : "Sin ancla")
-                : `${fixedItems.filter(item => String(item.name || "").trim()).length}/8`;
+                : `${fixedItems.filter(item => String(item.name || "").trim()).length}/8 · ${this.formatNumber(derived.bondsTotal * 5)} XP`;
+            this.elements.bondsNote.title = isEcstasy
+                ? ""
+                : `Lazos: ${this.formatNumber(derived.bondsTotal)} × 5 XP = ${this.formatNumber(derived.bondsTotal * 5)} XP`;
             if (!count) {
                 this.elements.bondsPanel.innerHTML = `<p class="empty-bond-message">No hay ningún lazo porque la forma humana no tiene ancla.</p>`;
                 return;
@@ -887,21 +898,37 @@
             return state.human.bonds;
         }
 
-        updateFixedHeaderCounts(state) {
+        updateFixedHeaderCounts(state, derived) {
             const temporalAspects = Array.from({ length: 4 }, (_, index) => state.profile.temporalAspects[index] ?? "");
             this.elements.temporalAspectsNote.textContent = `${temporalAspects.filter(item => String(item).trim()).length}/4`;
             const milestones = Array.from({ length: 6 }, (_, index) => state.profile.milestones[index] ?? "");
             this.elements.milestonesNote.textContent = `${milestones.filter(item => String(item).trim()).length}/6`;
             if (state.activeForm === "human") {
                 const filledBonds = state.human.bonds.filter(item => String(item.name || "").trim()).length;
-                this.elements.bondsNote.textContent = `${filledBonds}/8`;
+                this.elements.bondsNote.textContent = `${filledBonds}/8 · ${this.formatNumber(derived.bondsTotal * 5)} XP`;
+                this.elements.bondsNote.title = `Lazos: ${this.formatNumber(derived.bondsTotal)} × 5 XP = ${this.formatNumber(derived.bondsTotal * 5)} XP`;
+            } else {
+                this.elements.bondsNote.title = "";
             }
+        }
+
+        renderSpentTotal(element, total, cost, label, additionalExperience = null, additionalLabel = "") {
+            const baseExperience = total * cost;
+            if (additionalExperience !== null) {
+                element.textContent = `${this.formatNumber(total)} · ${this.formatNumber(baseExperience)} + ${this.formatNumber(additionalExperience)} XP`;
+                element.title = `${label}: ${this.formatNumber(baseExperience)} XP · ${additionalLabel}: ${this.formatNumber(additionalExperience)} XP · Total: ${this.formatNumber(baseExperience + additionalExperience)} XP`;
+                return;
+            }
+
+            element.textContent = `${this.formatNumber(total)} · ${this.formatNumber(baseExperience)} XP`;
+            element.title = `${label}: ${this.formatNumber(total)} × ${this.formatNumber(cost)} XP = ${this.formatNumber(baseExperience)} XP`;
         }
 
         renderChecks(formKey, derived) {
             const rows = [
                 ["Atributos", derived.attributesTotal],
-                ["Habilidades", derived.skillsTotal]
+                ["Habilidades", derived.skillsTotal],
+                ["Talentos", derived.talentsTotal]
             ];
             if (formKey === "human") {
                 rows.push(["Lazos", derived.bondsTotal]);
@@ -911,8 +938,38 @@
 
             this.elements.checksPanel.innerHTML = rows.map(([label, value]) => `<div><dt>${escapeHtml(label)}</dt><dd>${value}</dd></div>`).join("");
             this.elements.experienceTotal.textContent = this.formatNumber(derived.experience);
+            const experienceBreakdown = [
+                `Atributos: ${this.formatNumber(derived.attributesTotal)} × 15 = ${this.formatNumber(derived.attributesTotal * 15)} XP`,
+                `Habilidades: ${this.formatNumber(derived.skillsTotal)} × 5 = ${this.formatNumber(derived.skillsTotal * 5)} XP`,
+                `Talentos: ${this.formatNumber(derived.talentsTotal)} × 10 = ${this.formatNumber(derived.talentsTotal * 10)} XP`,
+                formKey === "human"
+                    ? `Lazos: ${this.formatNumber(derived.bondsTotal)} × 5 = ${this.formatNumber(derived.bondsTotal * 5)} XP`
+                    : `Habilidades arcanas: ${this.formatNumber(derived.arcaneTotal)} × 5 = ${this.formatNumber(derived.arcaneTotal * 5)} XP`,
+                `Total: ${this.formatNumber(derived.experience)} XP`
+            ];
+            this.elements.experienceTotal.removeAttribute("title");
+            this.elements.experienceBreakdownTooltip.innerHTML = experienceBreakdown
+                .map(item => `<span>${escapeHtml(item)}</span>`)
+                .join("");
             this.elements.adjustedExperienceRow.hidden = formKey !== "ecstasy";
             this.elements.adjustedExperience.textContent = this.formatNumber(derived.adjustedExperience);
+            this.elements.adjustedExperience.removeAttribute("title");
+            if (formKey === "ecstasy") {
+                const state = this.store.getState();
+                const distortion = ADOM.Calculations.number(state.distortion.level);
+                const humanBondsTotal = state.human.bonds
+                    .filter(item => String(item.name || "").trim())
+                    .reduce((total, item) => total + ADOM.Calculations.number(item.level), 0);
+                const adjustedBreakdown = [
+                    `Experiencia calculada: ${this.formatNumber(derived.experience)} XP`,
+                    `Distorsión: ${this.formatNumber(distortion)} × −30 = ${this.formatNumber(distortion * -30)} XP`,
+                    `Lazos: ${this.formatNumber(humanBondsTotal)} × 5 = +${this.formatNumber(humanBondsTotal * 5)} XP`,
+                    `Total: ${this.formatNumber(derived.adjustedExperience)} XP`
+                ];
+                this.elements.adjustedExperienceBreakdownTooltip.innerHTML = adjustedBreakdown
+                    .map(item => `<span>${escapeHtml(item)}</span>`)
+                    .join("");
+            }
             this.elements.tierLabel.textContent = formKey === "ecstasy" ? "Escalón (Éxtasis)" : "Escalón";
             this.elements.tierValue.textContent = derived.tier.toFixed(2);
         }

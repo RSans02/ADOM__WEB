@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>ADOM - Ficha externa</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/styles.css?v=24">
 </head>
 <body>
     <div class="app-shell" id="appShell">
@@ -228,11 +228,11 @@
                         </div>
                         <dl class="summary-list" id="checksPanel"></dl>
                         <div class="xp-block">
-                            <span>Experiencia calculada</span>
+                            <span class="xp-label">Experiencia <span class="damage-formula-help xp-breakdown-help" tabindex="0" aria-label="Ver desglose de la experiencia">?<span class="damage-formula-tooltip xp-breakdown-tooltip" id="experienceBreakdownTooltip" role="tooltip"></span></span></span>
                             <strong id="experienceTotal">0</strong>
                         </div>
                         <div class="xp-block xp-adjusted" id="adjustedExperienceRow" hidden>
-                            <span>XP − distorsión + lazos</span>
+                            <span class="xp-label">XP − distorsión + lazos <span class="damage-formula-help xp-breakdown-help" tabindex="0" aria-label="Ver desglose de la experiencia ajustada">?<span class="damage-formula-tooltip xp-breakdown-tooltip" id="adjustedExperienceBreakdownTooltip" role="tooltip"></span></span></span>
                             <strong id="adjustedExperience">0</strong>
                         </div>
                         <div class="tier-block">

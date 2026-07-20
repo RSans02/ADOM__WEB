@@ -38,7 +38,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 20,
+            schemaVersion: 21,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -296,6 +296,15 @@
         return form;
     }
 
+    function synchronizeItemOrder(referenceItems, targetItems) {
+        const positions = new Map((referenceItems || []).map((item, index) => [item.key, index]));
+        targetItems.sort((left, right) => {
+            const leftPosition = positions.has(left.key) ? positions.get(left.key) : Number.MAX_SAFE_INTEGER;
+            const rightPosition = positions.has(right.key) ? positions.get(right.key) : Number.MAX_SAFE_INTEGER;
+            return leftPosition - rightPosition;
+        });
+    }
+
     function normalizeState(candidate) {
         const defaults = createDefaultState();
         if (!candidate || typeof candidate !== "object") {
@@ -305,6 +314,10 @@
         const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
         const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
         const activeForm = candidate.activeForm === "ecstasy" ? "ecstasy" : "human";
+        const referenceForm = activeForm === "ecstasy" ? ecstasy : human;
+        const targetForm = activeForm === "ecstasy" ? human : ecstasy;
+        synchronizeItemOrder(referenceForm.attributes, targetForm.attributes);
+        synchronizeItemOrder(referenceForm.skills, targetForm.skills);
         const sharedAttributeDescriptors = new Map(
             (activeForm === "ecstasy" ? ecstasy : human).attributes.map(attribute => [attribute.key, attribute.descriptor])
         );
@@ -337,7 +350,7 @@
         }
 
         return {
-            schemaVersion: 20,
+            schemaVersion: 21,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,

@@ -503,6 +503,16 @@ input[type="checkbox"] {
     box-shadow: var(--shadow);
 }
 
+.summary-card {
+    position: relative;
+    z-index: 2;
+    overflow: visible;
+}
+
+.summary-card .summary-header {
+    border-radius: calc(var(--radius) - 1px) calc(var(--radius) - 1px) 0 0;
+}
+
 .card-header .appearance-reset-button {
     flex: 0 0 auto;
     color: #fff;
@@ -1161,15 +1171,59 @@ input[type="checkbox"] {
     border-top: 1px solid rgba(var(--accent-rgb), 0.2);
 }
 
+.xp-block[hidden] {
+    display: none;
+}
+
 .xp-block span,
 .tier-block span {
     font-size: 0.78rem;
     font-weight: 800;
 }
 
+.xp-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.xp-breakdown-help:hover,
+.xp-breakdown-help:focus-visible {
+    z-index: 40;
+}
+
+.xp-block .xp-breakdown-tooltip {
+    width: min(270px, 76vw);
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+.xp-block .xp-breakdown-tooltip > span {
+    display: block;
+    padding: 3px 2px;
+    font-size: 0.68rem;
+    font-weight: 600;
+}
+
+#experienceBreakdownTooltip {
+    top: auto;
+    bottom: calc(100% + 9px);
+    transform: translate(-50%, 3px);
+}
+
+#experienceBreakdownTooltip::before {
+    top: auto;
+    bottom: -5px;
+    transform: rotate(225deg);
+}
+
 .xp-block strong {
     color: #7b22e3;
     font-size: 1.15rem;
+}
+
+.app-shell[data-form="ecstasy"] #experienceTotal {
+    color: var(--ink);
 }
 
 .xp-adjusted {
