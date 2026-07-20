@@ -579,6 +579,62 @@ input[type="checkbox"] {
     font-weight: 850;
 }
 
+.header-tools {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.order-link-button {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+    transition: opacity var(--transition), background var(--transition), transform var(--transition);
+}
+
+.order-link-button[hidden] {
+    display: none;
+}
+
+.order-link-button svg {
+    width: 10px;
+    height: 10px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.order-link-button:hover,
+.order-link-button:focus-visible {
+    background: rgba(255, 255, 255, 0.3);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.order-link-button.is-unlinked {
+    opacity: 0.58;
+}
+
+.order-link-button.is-unlinked::after {
+    position: absolute;
+    width: 16px;
+    height: 2px;
+    border-radius: 2px;
+    background: currentColor;
+    content: "";
+    transform: rotate(-45deg);
+}
+
 .card-body {
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.79);

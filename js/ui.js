@@ -81,8 +81,8 @@
         collectElements() {
             const ids = [
                 "appShell", "characterManager", "characterSelector", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
-                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal",
-                "skillsList", "skillsTotal", "temporalAspectsNote", "temporalAspectsList",
+                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal", "attributesOrderLinkButton",
+                "skillsList", "skillsTotal", "skillsOrderLinkButton", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "experienceBreakdownTooltip", "adjustedExperienceRow", "adjustedExperience", "adjustedExperienceBreakdownTooltip",
@@ -100,6 +100,8 @@
             });
             this.elements.humanTab.addEventListener("click", () => this.setActiveForm("human"));
             this.elements.ecstasyTab.addEventListener("click", () => this.setActiveForm("ecstasy"));
+            this.elements.attributesOrderLinkButton.addEventListener("click", () => this.toggleOrderLink("attributes"));
+            this.elements.skillsOrderLinkButton.addEventListener("click", () => this.toggleOrderLink("skills"));
             this.elements.characterSelector.addEventListener("change", event => {
                 this.portraitEditing = false;
                 this.store.switchCharacter(event.target.value);
@@ -225,6 +227,47 @@
             this.store.update(state => { state.activeForm = formKey; }, { source: "form-switch" });
         }
 
+        toggleOrderLink(listName) {
+            const label = listName === "attributes" ? "Atributos" : "Habilidades";
+            let linked = false;
+            this.store.update(state => {
+                if (state.activeForm !== "ecstasy") return;
+                linked = !state.settings.orderLinks[listName];
+                state.settings.orderLinks[listName] = linked;
+                if (linked) this.synchronizeListOrder(state.human[listName], state.ecstasy[listName]);
+            }, { source: `order-link-${listName}` });
+            this.showToast(linked
+                ? `Orden de ${label} vinculado a la forma humana.`
+                : `Orden de ${label} independiente en cada forma.`, "info");
+        }
+
+        synchronizeListOrder(referenceItems, targetItems) {
+            const positions = new Map(referenceItems.map((item, index) => [item.key, index]));
+            targetItems.sort((left, right) => {
+                const leftPosition = positions.has(left.key) ? positions.get(left.key) : Number.MAX_SAFE_INTEGER;
+                const rightPosition = positions.has(right.key) ? positions.get(right.key) : Number.MAX_SAFE_INTEGER;
+                return leftPosition - rightPosition;
+            });
+        }
+
+        renderOrderLinks(state) {
+            const isEcstasy = state.activeForm === "ecstasy";
+            [
+                [this.elements.attributesOrderLinkButton, "attributes", "Atributos"],
+                [this.elements.skillsOrderLinkButton, "skills", "Habilidades"]
+            ].forEach(([button, listName, label]) => {
+                const linked = state.settings.orderLinks[listName];
+                button.hidden = !isEcstasy;
+                button.disabled = this.viewerMode;
+                button.classList.toggle("is-unlinked", !linked);
+                button.setAttribute("aria-pressed", String(linked));
+                button.setAttribute("aria-label", linked ? `Desvincular el orden de ${label}` : `Vincular el orden de ${label}`);
+                button.title = linked
+                    ? `Orden de ${label} vinculado a la forma humana`
+                    : `Orden de ${label} independiente; pulsar para usar el orden humano`;
+            });
+        }
+
         render() {
             const state = this.store.getState();
             const formKey = state.activeForm;
@@ -236,6 +279,7 @@
             this.applyFormTheme(state.settings.formColors[formKey], state.settings.formBackgrounds[formKey]);
             this.renderCharacterSelector();
             this.renderTabs(formKey);
+            this.renderOrderLinks(state);
             this.renderCharacterPortrait(state.profile);
             this.syncStaticFields(state, form);
             this.renderAttributes(form, derived);
@@ -723,13 +767,10 @@
                 const items = state[state.activeForm][listName];
                 const [movedItem] = items.splice(fromIndex, 1);
                 items.splice(toIndex, 0, movedItem);
-                const positions = new Map(items.map((item, index) => [item.key, index]));
-                const otherForm = state.activeForm === "human" ? state.ecstasy : state.human;
-                otherForm[listName].sort((left, right) => {
-                    const leftPosition = positions.has(left.key) ? positions.get(left.key) : Number.MAX_SAFE_INTEGER;
-                    const rightPosition = positions.has(right.key) ? positions.get(right.key) : Number.MAX_SAFE_INTEGER;
-                    return leftPosition - rightPosition;
-                });
+                if (state.settings.orderLinks[listName]) {
+                    const otherForm = state.activeForm === "human" ? state.ecstasy : state.human;
+                    this.synchronizeListOrder(items, otherForm[listName]);
+                }
             }, { source: `drag-reorder-${kind}` });
         }
 

@@ -38,7 +38,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 21,
+            schemaVersion: 22,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -68,6 +68,10 @@
                 formBackgrounds: {
                     human: "#ead5df",
                     ecstasy: "#d4e4e7"
+                },
+                orderLinks: {
+                    attributes: true,
+                    skills: true
                 }
             },
             human: {
@@ -314,10 +318,14 @@
         const human = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.human, candidate.human)));
         const ecstasy = normalizeAnchors(migrateLegacyTalents(mergeForm(defaults.ecstasy, candidate.ecstasy)));
         const activeForm = candidate.activeForm === "ecstasy" ? "ecstasy" : "human";
+        const orderLinks = {
+            attributes: candidate.settings?.orderLinks?.attributes !== false,
+            skills: candidate.settings?.orderLinks?.skills !== false
+        };
         const referenceForm = activeForm === "ecstasy" ? ecstasy : human;
         const targetForm = activeForm === "ecstasy" ? human : ecstasy;
-        synchronizeItemOrder(referenceForm.attributes, targetForm.attributes);
-        synchronizeItemOrder(referenceForm.skills, targetForm.skills);
+        if (orderLinks.attributes) synchronizeItemOrder(referenceForm.attributes, targetForm.attributes);
+        if (orderLinks.skills) synchronizeItemOrder(referenceForm.skills, targetForm.skills);
         const sharedAttributeDescriptors = new Map(
             (activeForm === "ecstasy" ? ecstasy : human).attributes.map(attribute => [attribute.key, attribute.descriptor])
         );
@@ -350,7 +358,7 @@
         }
 
         return {
-            schemaVersion: 21,
+            schemaVersion: 22,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,
@@ -382,7 +390,8 @@
                 formBackgrounds: {
                     human: normalizeColor(candidate.settings?.formBackgrounds?.human, defaults.settings.formBackgrounds.human),
                     ecstasy: normalizeColor(candidate.settings?.formBackgrounds?.ecstasy, defaults.settings.formBackgrounds.ecstasy)
-                }
+                },
+                orderLinks
             },
             human,
             ecstasy

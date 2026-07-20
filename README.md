@@ -91,7 +91,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - La pista de Drama es compartida entre la forma humana y la forma de éxtasis.
 - Drama y Éxtasis funcionan como pistas acumulativas: marcar rellena hasta la casilla elegida y desmarcar vacía desde esa casilla en adelante.
 - Los atributos y las habilidades se reordenan mediante asas de seis puntos y transiciones animadas. En los atributos aparece a la izquierda de su código; en las habilidades, bajo la flecha curva y a la izquierda del primer talento.
-- El orden de atributos y habilidades se comparte entre la forma humana y la forma de éxtasis, aunque sus valores sigan siendo independientes.
+- El orden de atributos y habilidades puede vincularse por separado entre la forma humana y la forma de éxtasis mediante los controles de cadena; sus valores siguen siendo independientes.
 - Los encabezados de atributos, habilidades, lazos y habilidades arcanas muestran también la experiencia gastada según su coste.
 - Los textos descriptivos de los atributos se comparten entre forma humana y éxtasis; sus valores numéricos siguen siendo independientes.
 - Los hitos son exactamente seis y no se pueden eliminar.
