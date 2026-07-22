@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.4.1
+// @version      0.4.4
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 //
 // Ficha externa local:
-// @match        https://adom-web.vercel.app
-// @match        http://127.0.0.1:5500/index.html
+// @match        https://adom-web.vercel.app/*
+// @match        http://127.0.0.1:5500/*
+// @match        http://localhost:5500/*
 //
 // Roll20:
 // @match        https://app.roll20.net/editor
@@ -237,8 +238,8 @@
         let nodes = Array.from(document.querySelectorAll("#textchat .message"));
         if (!nodes.length) nodes = Array.from(document.querySelectorAll("#textchat .content > div"));
         return nodes.slice(-80).map((node, index) => {
-            const speakerNode = node.querySelector(".by, .who, .message-name, [class*='speaker']");
-            const speaker = String(speakerNode?.textContent || "Roll20").replace(/:\s*$/, "").trim();
+            const speakerNode = findSpeakerNode(node);
+            const speaker = findRoll20Speaker(node, speakerNode);
             let text = String(node.innerText || node.textContent || "").trim();
             if (speakerNode) {
                 const speakerText = String(speakerNode.textContent || "").trim();
@@ -255,8 +256,54 @@
         }).filter(message => message.text);
     }
 
+    function findSpeakerNode(node) {
+        const selector = ".by, .who, .message-name, [class*='speaker'], [class*='author'], [data-testid*='author']";
+        const direct = node.querySelector(selector);
+        if (direct) return direct;
+
+        let previous = node.previousElementSibling;
+        for (let distance = 0; previous && distance < 5; distance += 1) {
+            const candidate = previous.matches(selector) ? previous : previous.querySelector(selector);
+            if (candidate) return candidate;
+            previous = previous.previousElementSibling;
+        }
+
+        let container = node.parentElement;
+        for (let depth = 0; container && depth < 3 && container.closest("#textchat"); depth += 1) {
+            if (container.id === "textchat" || container.classList.contains("content")) break;
+            const candidate = container.querySelector(selector);
+            if (candidate) return candidate;
+            container = container.parentElement;
+        }
+        return null;
+    }
+
+    function findRoll20Speaker(node, speakerNode) {
+        const attributeSpeaker = [
+            node.dataset?.who,
+            node.dataset?.speaker,
+            node.dataset?.author,
+            node.getAttribute("data-displayname")
+        ].find(value => String(value || "").trim());
+        const explicitSpeaker = String(speakerNode?.textContent || attributeSpeaker || "")
+            .replace(/:\s*$/, "")
+            .trim();
+        if (explicitSpeaker) return explicitSpeaker;
+
+        if (node.classList.contains("you")) {
+            const speakingAs = document.querySelector("#speakingas, select[name='speakingas'], #textchat-input select");
+            const selectedName = String(speakingAs?.selectedOptions?.[0]?.textContent || speakingAs?.value || "")
+                .replace(/^\s*(?:como|as)\s*:?\s*/i, "")
+                .trim();
+            if (selectedName) return selectedName;
+        }
+        return "Roll20";
+    }
+
     function extractRollDisplay(node) {
-        const rollNode = node.matches(".rollresult") ? node : node.querySelector(".rollresult");
+        const rollNode = node.matches(".rollresult")
+            ? node
+            : node.querySelector(".rollresult") || (node.querySelector(".diceroll, .rolled, .inlinerollresult") ? node : null);
         if (!rollNode) return null;
 
         const formula = String(
@@ -265,14 +312,27 @@
         const dice = Array.from(rollNode.querySelectorAll(".diceroll .didroll")).map(die => {
             const dieNode = die.closest(".diceroll");
             const sidesClass = Array.from(dieNode?.classList || []).find(name => /^d\d+$/i.test(name));
+            const classNames = new Set([
+                ...Array.from(dieNode?.classList || []),
+                ...Array.from(die.classList || [])
+            ]);
+            const value = String(die.textContent || "").trim();
+            const numericValue = Number.parseInt(value, 10);
+            const sides = Number.parseInt(String(sidesClass || "").slice(1), 10);
+            const outcome = classNames.has("critsuccess") || classNames.has("crit-success") || (Number.isInteger(sides) && numericValue === sides)
+                ? "critical"
+                : classNames.has("critfail") || classNames.has("crit-fail") || numericValue === 1
+                    ? "fumble"
+                    : "normal";
             return {
-                value: String(die.textContent || "").trim(),
+                value,
                 sides: sidesClass ? sidesClass.toLowerCase() : "die",
-                dropped: Boolean(dieNode?.classList.contains("dropped"))
+                dropped: Boolean(dieNode?.classList.contains("dropped")),
+                outcome
             };
         }).filter(die => die.value);
         const total = String(
-            rollNode.querySelector(".rolled, .roll-total, [class*='rolltotal']")?.textContent || ""
+            rollNode.querySelector(".rolled, .roll-total, [class*='rolltotal'], .inlinerollresult")?.textContent || ""
         ).trim();
 
         if (!formula && !dice.length && !total) return null;

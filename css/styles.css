@@ -105,7 +105,7 @@ input[type="checkbox"] {
     top: 0;
     z-index: 20;
     display: grid;
-    grid-template-columns: auto 1fr auto minmax(240px, 320px);
+    grid-template-columns: auto 1fr auto minmax(360px, 470px);
     grid-template-areas: "brand forms options character";
     align-items: center;
     column-gap: 40px;
@@ -121,7 +121,7 @@ input[type="checkbox"] {
 .character-manager {
     grid-area: character;
     display: grid;
-    grid-template-columns: minmax(105px, 1fr) auto auto;
+    grid-template-columns: minmax(110px, 0.9fr) minmax(130px, 1.1fr) auto;
     align-items: center;
     gap: 5px;
 }
@@ -179,6 +179,176 @@ input[type="checkbox"] {
     height: 44px;
     object-fit: contain;
     filter: drop-shadow(0 6px 8px rgba(var(--accent-rgb), 0.22));
+}
+
+.character-library-dialog {
+    width: min(900px, calc(100vw - 28px));
+    max-width: none;
+    max-height: min(760px, calc(100vh - 28px));
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid rgba(var(--accent-rgb), 0.3);
+    border-radius: 16px;
+    color: var(--ink);
+    background: #fffdfd;
+    box-shadow: 0 28px 80px rgba(44, 37, 48, 0.28);
+}
+
+.character-library-dialog::backdrop {
+    background: rgba(44, 37, 48, 0.46);
+    backdrop-filter: blur(3px);
+}
+
+.character-library-dialog[open] {
+    display: grid;
+    grid-template-rows: auto auto minmax(260px, 1fr) auto;
+}
+
+.character-library-header,
+.character-library-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(var(--accent-rgb), 0.06);
+}
+
+.character-library-header {
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.16);
+}
+
+.character-library-header h2 {
+    margin: 0;
+    font-size: 1.12rem;
+}
+
+.character-library-header .icon-button {
+    flex: 0 0 auto;
+    color: var(--accent-strong);
+    background: rgba(var(--accent-rgb), 0.09);
+}
+
+.library-section {
+    padding: 13px 16px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.14);
+}
+
+.library-toolbar {
+    display: grid;
+    grid-template-columns: minmax(180px, 1fr) repeat(3, auto);
+    gap: 7px;
+    margin-top: 6px;
+}
+
+.library-toolbar select,
+.library-filters select,
+.character-library-move {
+    min-height: 36px;
+    padding: 6px 30px 6px 9px;
+}
+
+.library-browser {
+    display: grid;
+    grid-template-columns: minmax(190px, 0.34fr) minmax(260px, 1fr);
+    gap: 14px;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.library-filters {
+    display: grid;
+    align-content: start;
+    gap: 12px;
+}
+
+.library-folder-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+.library-folder-actions .button:first-child {
+    grid-column: 1 / -1;
+}
+
+.character-library-list {
+    min-height: 230px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.character-folder-group + .character-folder-group {
+    margin-top: 14px;
+}
+
+.character-folder-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 0 6px;
+    color: var(--accent-strong);
+    font-size: 0.76rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.character-folder-title::before {
+    content: "";
+    width: 15px;
+    height: 11px;
+    border-radius: 3px 3px 2px 2px;
+    background: var(--accent);
+    box-shadow: 4px -3px 0 -1px var(--accent);
+}
+
+.character-library-entry-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(115px, 0.48fr);
+    gap: 7px;
+    margin-bottom: 6px;
+}
+
+.character-library-entry {
+    min-width: 0;
+    padding: 9px 10px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--ink);
+    background: rgba(255, 255, 255, 0.82);
+    cursor: pointer;
+    font-weight: 750;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.character-library-entry:hover,
+.character-library-entry.is-active {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.08);
+}
+
+.character-library-empty {
+    display: grid;
+    place-items: center;
+    min-height: 210px;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+.character-library-footer {
+    border-top: 1px solid rgba(var(--accent-rgb), 0.16);
+    font-size: 0.76rem;
+    font-weight: 750;
+}
+
+.character-library-footer > div {
+    display: flex;
+    gap: 7px;
 }
 
 .brand-block h1,
@@ -1322,6 +1492,7 @@ input[type="checkbox"] {
     max-height: 290px;
     margin-bottom: 12px;
     padding: 9px;
+    overflow-x: hidden;
     overflow-y: auto;
     border: 1px solid rgba(var(--accent-rgb), 0.2);
     border-radius: 9px;
@@ -1339,6 +1510,9 @@ input[type="checkbox"] {
 }
 
 .roll20-chat-message {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 7px 8px;
     border-radius: 8px;
     background: rgba(var(--accent-rgb), 0.07);
@@ -1360,56 +1534,94 @@ input[type="checkbox"] {
 }
 
 .roll20-chat-message.is-roll {
+    color-scheme: light;
     padding: 8px;
-    background: #333;
+    border: 1px solid rgba(var(--accent-rgb), 0.18);
+    background: #fff;
 }
 
 .roll20-chat-message.is-roll > strong {
-    color: #f0d9ff;
+    color: var(--accent-strong);
 }
 
 .roll20-dice-display {
+    color-scheme: light;
     display: grid;
     justify-items: start;
     gap: 5px;
-    color: #fff;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    color: var(--ink);
 }
 
 .roll20-dice-formula,
 .roll20-dice-group,
 .roll20-dice-total {
-    border: 1px solid #9a35d0;
+    border: 1px solid var(--accent);
     border-radius: 11px;
-    background: #202020;
+    background: #fff;
+    box-shadow: 0 2px 7px rgba(var(--accent-rgb), 0.08);
 }
 
 .roll20-dice-formula {
+    max-width: 100%;
     padding: 7px 9px;
     font-size: 0.78rem;
     font-weight: 750;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 .roll20-dice-expression {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 7px;
+    width: 100%;
     min-width: 0;
 }
 
 .roll20-dice-group {
     display: inline-flex;
+    flex: 0 1 auto;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
+    width: max-content;
+    max-width: 100%;
     min-height: 42px;
     padding: 5px 8px;
     font-size: 1.05rem;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    word-break: normal;
+}
+
+.roll20-die-term,
+.roll20-dice-result {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.roll20-dice-result {
+    flex: 0 0 auto;
+    gap: 7px;
 }
 
 .roll20-die {
-    color: #fff;
+    display: inline-block;
+    flex: 0 0 auto;
+    color: var(--ink);
     font-size: 1.25rem;
     font-weight: 500;
-    text-shadow: 0 0 5px rgba(154, 53, 208, 0.75);
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 .roll20-die.is-dropped {
@@ -1417,20 +1629,45 @@ input[type="checkbox"] {
     text-decoration: line-through;
 }
 
+.roll20-die.is-critical {
+    color: #15803d;
+    padding: 1px 4px;
+    border-radius: 6px;
+    background: #dcfce7;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(21, 128, 61, 0.18);
+}
+
+.roll20-die.is-fumble {
+    color: #c62828;
+    padding: 1px 4px;
+    border-radius: 6px;
+    background: #fee2e2;
+    font-weight: 800;
+    text-shadow: 0 0 8px rgba(198, 40, 40, 0.18);
+}
+
 .roll20-dice-equals {
-    color: #ddd !important;
+    flex: 0 0 auto;
+    color: var(--muted) !important;
     font-size: 1rem !important;
+    white-space: nowrap !important;
 }
 
 .roll20-dice-total {
     display: grid;
+    flex: 0 0 auto;
     place-items: center;
     min-width: 38px;
     min-height: 46px;
     padding: 5px 8px;
-    color: #fff;
+    color: var(--ink);
     font-size: 1.35rem;
     font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 .connection-pill[data-state="unknown"] {
@@ -1568,7 +1805,7 @@ input[type="checkbox"] {
 
     .character-manager {
         justify-self: end;
-        width: min(100%, 360px);
+        width: min(100%, 520px);
     }
 
     .topbar-actions {
@@ -1616,6 +1853,37 @@ input[type="checkbox"] {
         width: 100%;
     }
 
+    .character-library-dialog[open] {
+        grid-template-rows: auto auto minmax(300px, 1fr) auto;
+    }
+
+    .library-toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .library-toolbar select {
+        grid-column: 1 / -1;
+    }
+
+    .library-browser {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+
+    .character-library-list {
+        overflow: visible;
+    }
+
+    .character-library-footer {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .character-library-footer > div {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
     .topbar-actions {
         order: 4;
         justify-content: center;
@@ -1658,6 +1926,17 @@ input[type="checkbox"] {
 }
 
 @media (max-width: 430px) {
+    .character-manager {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .character-manager-button {
+        grid-column: 1 / -1;
+    }
+
+    .character-library-entry-row {
+        grid-template-columns: 1fr;
+    }
     .topbar-actions .button {
         flex: 1 1 calc(50% - 8px);
     }

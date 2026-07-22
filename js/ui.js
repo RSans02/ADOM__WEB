@@ -64,6 +64,7 @@
             this.reorderDrag = null;
             this.attributeDropIndex = null;
             this.skillDropIndex = null;
+            this.libraryFolderId = "all";
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -81,7 +82,7 @@
 
         collectElements() {
             const ids = [
-                "appShell", "characterManager", "characterSelector", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
+                "appShell", "characterManager", "campaignSelector", "characterSelector", "openCharacterLibraryButton", "characterLibraryDialog", "closeCharacterLibraryButton", "libraryCampaignSelector", "addCampaignButton", "renameCampaignButton", "deleteCampaignButton", "characterSearch", "folderFilter", "addFolderButton", "renameFolderButton", "deleteFolderButton", "characterLibraryList", "characterLibraryCount", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal", "attributesOrderLinkButton",
                 "skillsList", "skillsTotal", "skillsOrderLinkButton", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
@@ -106,6 +107,42 @@
             this.elements.characterSelector.addEventListener("change", event => {
                 this.portraitEditing = false;
                 this.store.switchCharacter(event.target.value);
+            });
+            this.elements.campaignSelector.addEventListener("change", event => {
+                this.portraitEditing = false;
+                this.libraryFolderId = "all";
+                this.store.switchCampaign(event.target.value);
+            });
+            this.elements.openCharacterLibraryButton.addEventListener("click", () => this.openCharacterLibrary());
+            this.elements.closeCharacterLibraryButton.addEventListener("click", () => this.elements.characterLibraryDialog.close());
+            this.elements.characterLibraryDialog.addEventListener("click", event => {
+                if (event.target === this.elements.characterLibraryDialog) this.elements.characterLibraryDialog.close();
+            });
+            this.elements.libraryCampaignSelector.addEventListener("change", event => {
+                this.libraryFolderId = "all";
+                this.elements.characterSearch.value = "";
+                this.store.switchCampaign(event.target.value);
+            });
+            this.elements.characterSearch.addEventListener("input", () => this.renderCharacterLibrary());
+            this.elements.folderFilter.addEventListener("change", event => {
+                this.libraryFolderId = event.target.value;
+                this.renderCharacterLibrary();
+            });
+            this.elements.addCampaignButton.addEventListener("click", () => this.createCampaign());
+            this.elements.renameCampaignButton.addEventListener("click", () => this.renameCampaign());
+            this.elements.deleteCampaignButton.addEventListener("click", () => this.deleteCampaign());
+            this.elements.addFolderButton.addEventListener("click", () => this.createFolder());
+            this.elements.renameFolderButton.addEventListener("click", () => this.renameFolder());
+            this.elements.deleteFolderButton.addEventListener("click", () => this.deleteFolder());
+            this.elements.characterLibraryList.addEventListener("click", event => {
+                const button = event.target.closest("[data-character-id]");
+                if (!button) return;
+                this.portraitEditing = false;
+                this.store.switchCharacter(button.dataset.characterId);
+            });
+            this.elements.characterLibraryList.addEventListener("change", event => {
+                if (!event.target.matches("[data-move-character-id]")) return;
+                this.store.moveCharacter(event.target.dataset.moveCharacterId, event.target.value);
             });
             this.elements.newCharacterButton.addEventListener("click", () => this.createCharacter());
             this.elements.deleteCharacterButton.addEventListener("click", () => this.deleteCharacter());
@@ -363,26 +400,152 @@
         }
 
         renderCharacterSelector() {
+            const campaigns = this.store.getCampaigns();
+            const activeCampaignId = this.store.getActiveCampaignId();
+            [this.elements.campaignSelector, this.elements.libraryCampaignSelector].forEach(selector => {
+                const fragment = document.createDocumentFragment();
+                campaigns.forEach(campaign => {
+                    const option = document.createElement("option");
+                    option.value = campaign.id;
+                    option.textContent = campaign.name;
+                    option.selected = campaign.id === activeCampaignId;
+                    fragment.append(option);
+                });
+                selector.replaceChildren(fragment);
+                selector.title = selector.selectedOptions[0]?.textContent || "";
+            });
+
             const characters = this.store.getCharacters();
             const activeId = this.store.getActiveCharacterId();
             const fragment = document.createDocumentFragment();
-            characters.forEach((character, index) => {
-                const option = document.createElement("option");
-                option.value = character.id;
-                option.textContent = character.name || `Personaje sin nombre ${index + 1}`;
-                option.selected = character.id === activeId;
-                fragment.appendChild(option);
+            const folders = this.store.getFolders();
+            folders.forEach(folder => {
+                const groupCharacters = characters.filter(character => character.folderId === folder.id);
+                if (!groupCharacters.length) return;
+                const group = document.createElement("optgroup");
+                group.label = folder.name;
+                groupCharacters.forEach((character, index) => {
+                    const option = document.createElement("option");
+                    option.value = character.id;
+                    option.textContent = character.name || `Personaje sin nombre ${index + 1}`;
+                    option.selected = character.id === activeId;
+                    group.append(option);
+                });
+                fragment.append(group);
             });
             this.elements.characterSelector.replaceChildren(fragment);
             this.elements.characterSelector.title = this.elements.characterSelector.selectedOptions[0]?.textContent || "";
             this.elements.deleteCharacterButton.disabled = this.viewerMode || characters.length <= 1;
+            this.elements.deleteCampaignButton.disabled = this.viewerMode || campaigns.length <= 1;
+            if (this.elements.characterLibraryDialog.open) this.renderCharacterLibrary();
+        }
+
+        openCharacterLibrary() {
+            if (this.viewerMode) return;
+            this.libraryFolderId = "all";
+            this.elements.characterSearch.value = "";
+            this.renderCharacterLibrary();
+            this.elements.characterLibraryDialog.showModal();
+            this.elements.characterSearch.focus();
+        }
+
+        normalizeSearchText(value) {
+            return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        }
+
+        renderCharacterLibrary() {
+            const campaignId = this.store.getActiveCampaignId();
+            const folders = this.store.getFolders(campaignId);
+            const characters = this.store.getCharacters(campaignId);
+            if (this.libraryFolderId !== "all" && !folders.some(folder => folder.id === this.libraryFolderId)) {
+                this.libraryFolderId = "all";
+            }
+
+            const folderOptions = document.createDocumentFragment();
+            const allOption = document.createElement("option");
+            allOption.value = "all";
+            allOption.textContent = "Todas las carpetas";
+            allOption.selected = this.libraryFolderId === "all";
+            folderOptions.append(allOption);
+            folders.forEach(folder => {
+                const option = document.createElement("option");
+                option.value = folder.id;
+                option.textContent = folder.name;
+                option.selected = folder.id === this.libraryFolderId;
+                folderOptions.append(option);
+            });
+            this.elements.folderFilter.replaceChildren(folderOptions);
+
+            const query = this.normalizeSearchText(this.elements.characterSearch.value);
+            const visibleCharacters = characters.filter(character => {
+                const matchesFolder = this.libraryFolderId === "all" || character.folderId === this.libraryFolderId;
+                const displayName = character.name || "Personaje sin nombre";
+                return matchesFolder && this.normalizeSearchText(displayName).includes(query);
+            });
+            const activeId = this.store.getActiveCharacterId();
+            const listFragment = document.createDocumentFragment();
+
+            folders.forEach(folder => {
+                if (this.libraryFolderId !== "all" && folder.id !== this.libraryFolderId) return;
+                const folderCharacters = visibleCharacters.filter(character => character.folderId === folder.id);
+                if (!folderCharacters.length) return;
+                const group = document.createElement("section");
+                group.className = "character-folder-group";
+                const heading = document.createElement("h3");
+                heading.className = "character-folder-title";
+                heading.textContent = folder.name;
+                group.append(heading);
+
+                folderCharacters.forEach((character, index) => {
+                    const row = document.createElement("div");
+                    row.className = "character-library-entry-row";
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = "character-library-entry";
+                    button.dataset.characterId = character.id;
+                    button.classList.toggle("is-active", character.id === activeId);
+                    button.textContent = character.name || `Personaje sin nombre ${index + 1}`;
+                    button.title = button.textContent;
+
+                    const move = document.createElement("select");
+                    move.className = "character-library-move";
+                    move.dataset.moveCharacterId = character.id;
+                    move.setAttribute("aria-label", `Mover ${button.textContent} a otra carpeta`);
+                    folders.forEach(targetFolder => {
+                        const option = document.createElement("option");
+                        option.value = targetFolder.id;
+                        option.textContent = targetFolder.name;
+                        option.selected = targetFolder.id === character.folderId;
+                        move.append(option);
+                    });
+                    row.append(button, move);
+                    group.append(row);
+                });
+                listFragment.append(group);
+            });
+
+            if (!visibleCharacters.length) {
+                const empty = document.createElement("p");
+                empty.className = "character-library-empty";
+                empty.textContent = query ? "No hay personajes que coincidan con la búsqueda." : "Esta carpeta no contiene personajes.";
+                listFragment.append(empty);
+            }
+            this.elements.characterLibraryList.replaceChildren(listFragment);
+            this.elements.characterLibraryCount.textContent = `${visibleCharacters.length} ${visibleCharacters.length === 1 ? "personaje" : "personajes"}`;
+
+            const folderSelected = this.libraryFolderId !== "all";
+            this.elements.renameFolderButton.disabled = this.viewerMode || !folderSelected;
+            this.elements.deleteFolderButton.disabled = this.viewerMode || !folderSelected || folders.length <= 1;
         }
 
         createCharacter() {
             if (this.viewerMode) return;
             this.portraitEditing = false;
-            this.store.createCharacter();
+            const folders = this.store.getFolders();
+            const folderId = this.libraryFolderId !== "all" ? this.libraryFolderId : folders[0]?.id;
+            this.store.createCharacter({ campaignId: this.store.getActiveCampaignId(), folderId });
             this.showToast("Personaje nuevo creado.", "success");
+            this.elements.characterLibraryDialog.close();
             this.elements.characterName.focus();
         }
 
@@ -393,6 +556,62 @@
             this.portraitEditing = false;
             this.store.deleteCharacter(this.store.getActiveCharacterId());
             this.showToast("Personaje eliminado.", "success");
+        }
+
+        createCampaign() {
+            const name = global.prompt("Nombre de la nueva campaña:", "Nueva campaña");
+            if (!name?.trim()) return;
+            this.libraryFolderId = "all";
+            this.elements.characterSearch.value = "";
+            this.store.createCampaign(name);
+            this.showToast("Campaña creada.", "success");
+        }
+
+        renameCampaign() {
+            const campaign = this.store.getCampaigns().find(item => item.id === this.store.getActiveCampaignId());
+            if (!campaign) return;
+            const name = global.prompt("Nuevo nombre de la campaña:", campaign.name);
+            if (!name?.trim()) return;
+            this.store.renameCampaign(campaign.id, name);
+        }
+
+        deleteCampaign() {
+            const campaigns = this.store.getCampaigns();
+            const campaign = campaigns.find(item => item.id === this.store.getActiveCampaignId());
+            if (!campaign || campaigns.length <= 1) return;
+            if (!global.confirm(`¿Eliminar la campaña «${campaign.name}» y todos sus personajes? Esta acción no se puede deshacer.`)) return;
+            this.libraryFolderId = "all";
+            this.elements.characterSearch.value = "";
+            this.store.deleteCampaign(campaign.id);
+            this.showToast("Campaña eliminada.", "success");
+        }
+
+        createFolder() {
+            const name = global.prompt("Nombre de la nueva carpeta:", "Nueva carpeta");
+            if (!name?.trim()) return;
+            const folderId = this.store.createFolder(this.store.getActiveCampaignId(), name);
+            if (folderId) {
+                this.libraryFolderId = folderId;
+                this.renderCharacterLibrary();
+            }
+        }
+
+        renameFolder() {
+            if (this.libraryFolderId === "all") return;
+            const folder = this.store.getFolders().find(item => item.id === this.libraryFolderId);
+            if (!folder) return;
+            const name = global.prompt("Nuevo nombre de la carpeta:", folder.name);
+            if (!name?.trim()) return;
+            this.store.renameFolder(this.store.getActiveCampaignId(), folder.id, name);
+        }
+
+        deleteFolder() {
+            if (this.libraryFolderId === "all") return;
+            const folder = this.store.getFolders().find(item => item.id === this.libraryFolderId);
+            if (!folder) return;
+            if (!global.confirm(`¿Eliminar la carpeta «${folder.name}»? Sus personajes se moverán a otra carpeta.`)) return;
+            this.store.deleteFolder(this.store.getActiveCampaignId(), folder.id);
+            this.libraryFolderId = "all";
         }
 
         syncStaticFields(state, form) {
@@ -1487,28 +1706,35 @@
             expression.className = "roll20-dice-expression";
             const diceGroup = document.createElement("div");
             diceGroup.className = "roll20-dice-group";
-            diceGroup.append(document.createTextNode("("));
             (roll.dice || []).forEach((die, index) => {
-                if (index) diceGroup.append(document.createTextNode(" + "));
+                const term = document.createElement("span");
+                term.className = "roll20-die-term";
+                term.append(document.createTextNode(index === 0 ? "(" : "+"));
                 const dieValue = document.createElement("b");
                 dieValue.className = "roll20-die";
                 if (die.dropped) dieValue.classList.add("is-dropped");
+                if (die.outcome === "critical") dieValue.classList.add("is-critical");
+                if (die.outcome === "fumble") dieValue.classList.add("is-fumble");
                 dieValue.dataset.sides = die.sides || "die";
                 dieValue.textContent = die.value;
-                diceGroup.append(dieValue);
+                term.append(dieValue);
+                if (index === roll.dice.length - 1) term.append(document.createTextNode(")"));
+                diceGroup.append(term);
             });
-            diceGroup.append(document.createTextNode(")"));
             expression.append(diceGroup);
 
+            const result = document.createElement("span");
+            result.className = "roll20-dice-result";
             const equals = document.createElement("span");
             equals.className = "roll20-dice-equals";
             equals.textContent = "=";
-            expression.append(equals);
+            result.append(equals);
 
             const total = document.createElement("b");
             total.className = "roll20-dice-total";
             total.textContent = roll.total || String(fallbackText || "").match(/(?:=\s*)?(-?\d+)\s*$/)?.[1] || "?";
-            expression.append(total);
+            result.append(total);
+            expression.append(result);
             display.append(expression);
             return display;
         }

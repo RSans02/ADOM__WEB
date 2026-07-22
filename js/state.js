@@ -4,7 +4,7 @@
     const ADOM = global.ADOM = global.ADOM || {};
     const LEGACY_STORAGE_KEY = "adom.external.sheet.character.v1";
     const STORAGE_KEY = "adom.external.sheet.characters.v2";
-    const COLLECTION_SCHEMA_VERSION = 1;
+    const COLLECTION_SCHEMA_VERSION = 2;
 
     const ATTRIBUTE_TEMPLATE = [
         { key: "strength", code: "FOR", descriptor: "Sílfide", value: 2 },
@@ -456,12 +456,32 @@
             return `character-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
         }
 
+        createEntityId(prefix) {
+            if (typeof global.crypto?.randomUUID === "function") return `${prefix}-${global.crypto.randomUUID()}`;
+            return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+        }
+
+        createCampaignRecord(name = "Mi campaña") {
+            const id = this.createEntityId("campaign");
+            return {
+                id,
+                name: String(name || "Mi campaña").trim() || "Mi campaña",
+                folders: ["Jugadores", "NPCs", "Enemigos"].map(folderName => ({
+                    id: this.createEntityId("folder"),
+                    name: folderName
+                }))
+            };
+        }
+
         createCollection(initialState) {
             const id = this.createCharacterId();
+            const campaign = this.createCampaignRecord();
             return {
                 schemaVersion: COLLECTION_SCHEMA_VERSION,
+                activeCampaignId: campaign.id,
                 activeCharacterId: id,
-                characters: [{ id, state: initialState }]
+                campaigns: [campaign],
+                characters: [{ id, campaignId: campaign.id, folderId: campaign.folders[0].id, state: initialState }]
             };
         }
 
@@ -472,13 +492,58 @@
                 let id = String(entry?.id || "").trim();
                 if (!id || usedIds.has(id)) id = this.createCharacterId();
                 usedIds.add(id);
-                return { id, state: normalizeState(entry?.state) };
+                return {
+                    id,
+                    campaignId: String(entry?.campaignId || ""),
+                    folderId: String(entry?.folderId || ""),
+                    state: normalizeState(entry?.state)
+                };
             });
             if (!characters.length) return null;
+            const campaignIds = new Set();
+            const campaigns = (Array.isArray(candidate.campaigns) ? candidate.campaigns : []).map(item => {
+                let id = String(item?.id || "").trim();
+                if (!id || campaignIds.has(id)) id = this.createEntityId("campaign");
+                campaignIds.add(id);
+                const folderIds = new Set();
+                const folders = (Array.isArray(item?.folders) ? item.folders : []).map(folder => {
+                    let folderId = String(folder?.id || "").trim();
+                    if (!folderId || folderIds.has(folderId)) folderId = this.createEntityId("folder");
+                    folderIds.add(folderId);
+                    return { id: folderId, name: String(folder?.name || "Carpeta").trim() || "Carpeta" };
+                });
+                if (!folders.length) folders.push({ id: this.createEntityId("folder"), name: "Jugadores" });
+                return { id, name: String(item?.name || "Campaña").trim() || "Campaña", folders };
+            });
+            if (!campaigns.length) campaigns.push(this.createCampaignRecord());
+
+            const fallbackCampaign = campaigns[0];
+            characters.forEach(entry => {
+                const campaign = campaigns.find(item => item.id === entry.campaignId) || fallbackCampaign;
+                entry.campaignId = campaign.id;
+                if (!campaign.folders.some(folder => folder.id === entry.folderId)) entry.folderId = campaign.folders[0].id;
+            });
+
+            let activeCampaignId = String(candidate.activeCampaignId || "");
+            if (!campaigns.some(campaign => campaign.id === activeCampaignId)) activeCampaignId = fallbackCampaign.id;
+            if (!characters.some(entry => entry.campaignId === activeCampaignId)) {
+                const campaign = campaigns.find(item => item.id === activeCampaignId) || fallbackCampaign;
+                characters.push({
+                    id: this.createCharacterId(),
+                    campaignId: campaign.id,
+                    folderId: campaign.folders[0].id,
+                    state: createEmptyState()
+                });
+            }
             const requestedId = String(candidate.activeCharacterId || "");
+            const activeCharacter = characters.find(entry => entry.id === requestedId && entry.campaignId === activeCampaignId)
+                || characters.find(entry => entry.campaignId === activeCampaignId)
+                || characters[0];
             return {
                 schemaVersion: COLLECTION_SCHEMA_VERSION,
-                activeCharacterId: characters.some(entry => entry.id === requestedId) ? requestedId : characters[0].id,
+                activeCampaignId: activeCharacter.campaignId,
+                activeCharacterId: activeCharacter.id,
+                campaigns,
                 characters
             };
         }
@@ -510,16 +575,48 @@
             return this.collection.activeCharacterId;
         }
 
-        getCharacters() {
-            return this.collection.characters.map(entry => ({
+        getActiveCampaignId() {
+            return this.collection.activeCampaignId;
+        }
+
+        getCampaigns() {
+            return this.collection.campaigns.map(campaign => ({
+                id: campaign.id,
+                name: campaign.name,
+                folders: campaign.folders.map(folder => ({ ...folder }))
+            }));
+        }
+
+        getFolders(campaignId = this.collection.activeCampaignId) {
+            return this.collection.campaigns.find(campaign => campaign.id === campaignId)?.folders.map(folder => ({ ...folder })) || [];
+        }
+
+        getCharacters(campaignId = this.collection.activeCampaignId) {
+            return this.collection.characters.filter(entry => !campaignId || entry.campaignId === campaignId).map(entry => ({
                 id: entry.id,
+                campaignId: entry.campaignId,
+                folderId: entry.folderId,
                 name: String(entry.state.profile?.name || "").trim()
             }));
+        }
+
+        switchCampaign(id) {
+            const campaign = this.collection.campaigns.find(item => item.id === id);
+            if (!campaign || campaign.id === this.collection.activeCampaignId) return false;
+            const entry = this.collection.characters.find(character => character.campaignId === campaign.id);
+            if (!entry) return false;
+            this.collection.activeCampaignId = campaign.id;
+            this.collection.activeCharacterId = entry.id;
+            this.state = entry.state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "campaign-switch" } }));
+            this.scheduleSave();
+            return true;
         }
 
         switchCharacter(id) {
             const entry = this.collection.characters.find(character => character.id === id);
             if (!entry || entry.id === this.collection.activeCharacterId) return false;
+            this.collection.activeCampaignId = entry.campaignId;
             this.collection.activeCharacterId = entry.id;
             this.state = entry.state;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-switch" } }));
@@ -527,9 +624,16 @@
             return true;
         }
 
-        createCharacter() {
-            const entry = { id: this.createCharacterId(), state: createEmptyState() };
+        createCharacter(options) {
+            const campaign = this.collection.campaigns.find(item => item.id === options?.campaignId)
+                || this.collection.campaigns.find(item => item.id === this.collection.activeCampaignId)
+                || this.collection.campaigns[0];
+            const folderId = campaign.folders.some(folder => folder.id === options?.folderId)
+                ? options.folderId
+                : campaign.folders[0].id;
+            const entry = { id: this.createCharacterId(), campaignId: campaign.id, folderId, state: createEmptyState() };
             this.collection.characters.push(entry);
+            this.collection.activeCampaignId = campaign.id;
             this.collection.activeCharacterId = entry.id;
             this.state = entry.state;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-create" } }));
@@ -538,16 +642,101 @@
         }
 
         deleteCharacter(id) {
-            if (this.collection.characters.length <= 1) return false;
+            const target = this.collection.characters.find(entry => entry.id === id);
+            if (!target) return false;
+            if (this.collection.characters.filter(entry => entry.campaignId === target.campaignId).length <= 1) return false;
             const index = this.collection.characters.findIndex(entry => entry.id === id);
-            if (index < 0) return false;
             this.collection.characters.splice(index, 1);
             if (this.collection.activeCharacterId === id) {
-                const nextEntry = this.collection.characters[Math.min(index, this.collection.characters.length - 1)];
+                const nextEntry = this.collection.characters.find(entry => entry.campaignId === target.campaignId)
+                    || this.collection.characters[Math.min(index, this.collection.characters.length - 1)];
+                this.collection.activeCampaignId = nextEntry.campaignId;
                 this.collection.activeCharacterId = nextEntry.id;
                 this.state = nextEntry.state;
             }
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-delete" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        createCampaign(name) {
+            const campaign = this.createCampaignRecord(name || "Nueva campaña");
+            this.collection.campaigns.push(campaign);
+            const characterId = this.createCharacter({ campaignId: campaign.id, folderId: campaign.folders[0].id });
+            return { campaignId: campaign.id, characterId };
+        }
+
+        renameCampaign(id, name) {
+            const campaign = this.collection.campaigns.find(item => item.id === id);
+            const normalizedName = String(name || "").trim();
+            if (!campaign || !normalizedName) return false;
+            campaign.name = normalizedName;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "campaign-rename" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        deleteCampaign(id) {
+            if (this.collection.campaigns.length <= 1) return false;
+            const index = this.collection.campaigns.findIndex(campaign => campaign.id === id);
+            if (index < 0) return false;
+            const removedCharacterIds = new Set(this.collection.characters.filter(entry => entry.campaignId === id).map(entry => entry.id));
+            this.collection.campaigns.splice(index, 1);
+            this.collection.characters = this.collection.characters.filter(entry => entry.campaignId !== id);
+            if (this.collection.activeCampaignId === id || removedCharacterIds.has(this.collection.activeCharacterId)) {
+                const nextCampaign = this.collection.campaigns[Math.min(index, this.collection.campaigns.length - 1)];
+                const nextEntry = this.collection.characters.find(entry => entry.campaignId === nextCampaign.id);
+                this.collection.activeCampaignId = nextCampaign.id;
+                this.collection.activeCharacterId = nextEntry.id;
+                this.state = nextEntry.state;
+            }
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "campaign-delete" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        createFolder(campaignId, name) {
+            const campaign = this.collection.campaigns.find(item => item.id === campaignId);
+            const normalizedName = String(name || "").trim();
+            if (!campaign || !normalizedName) return null;
+            const folder = { id: this.createEntityId("folder"), name: normalizedName };
+            campaign.folders.push(folder);
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "folder-create" } }));
+            this.scheduleSave();
+            return folder.id;
+        }
+
+        renameFolder(campaignId, folderId, name) {
+            const folder = this.collection.campaigns.find(item => item.id === campaignId)?.folders.find(item => item.id === folderId);
+            const normalizedName = String(name || "").trim();
+            if (!folder || !normalizedName) return false;
+            folder.name = normalizedName;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "folder-rename" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        deleteFolder(campaignId, folderId) {
+            const campaign = this.collection.campaigns.find(item => item.id === campaignId);
+            if (!campaign || campaign.folders.length <= 1) return false;
+            const index = campaign.folders.findIndex(folder => folder.id === folderId);
+            if (index < 0) return false;
+            campaign.folders.splice(index, 1);
+            const fallbackFolder = campaign.folders[Math.min(index, campaign.folders.length - 1)];
+            this.collection.characters.forEach(entry => {
+                if (entry.campaignId === campaignId && entry.folderId === folderId) entry.folderId = fallbackFolder.id;
+            });
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "folder-delete" } }));
+            this.scheduleSave();
+            return true;
+        }
+
+        moveCharacter(characterId, folderId) {
+            const entry = this.collection.characters.find(item => item.id === characterId);
+            const campaign = entry && this.collection.campaigns.find(item => item.id === entry.campaignId);
+            if (!entry || !campaign?.folders.some(folder => folder.id === folderId)) return false;
+            entry.folderId = folderId;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-move" } }));
             this.scheduleSave();
             return true;
         }

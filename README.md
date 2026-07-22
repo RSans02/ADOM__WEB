@@ -26,8 +26,9 @@ La ficha utiliza el protocolo ya validado:
 El userscript debe incluir:
 
 ```javascript
-// @match        https://adom-web.vercel.app
-// @match        http://127.0.0.1:5500/index.html
+// @match        https://adom-web.vercel.app/*
+// @match        http://127.0.0.1:5500/*
+// @match        http://localhost:5500/*
 ```
 
 ## Funciones incluidas
@@ -37,12 +38,14 @@ El userscript debe incluir:
 - Cálculos automáticos extraídos de las fórmulas del Excel.
 - Guardado automático con `localStorage`.
 - Selector de personajes en la cabecera para crear, alternar y eliminar varias fichas independientes.
+- Organización de personajes por campañas y carpetas, con buscador por nombre y movimiento entre carpetas.
+- Las fichas guardadas por versiones anteriores se migran automáticamente a `Mi campaña / Jugadores`.
 - Migración automática del personaje guardado por versiones anteriores al nuevo listado de personajes.
 - La primera visita carga una ficha vacía si el navegador no tiene ningún personaje guardado.
 - Importación y exportación del personaje en JSON.
 - Importación de cualquier `.xlsx` basado en la plantilla ADOM con las hojas `Forma humana` y `Forma de Éxtasis`; se carga en el personaje seleccionado e incluye la imagen incrustada cuando es compatible.
 - Chat de Roll20 integrado: historial sincronizado, mensajes y comandos desde la ficha.
-- Las tiradas del chat muestran su fórmula, los dados individuales y el total con formato visual.
+- Las tiradas del chat muestran su fórmula, los dados individuales y el total con formato claro; los críticos aparecen en verde y las pifias en rojo.
 - Botones de tirada en atributos y habilidades.
 - Tiradas de daño de armas mediante dados `m`, `c` y `M`, con selector de daño a distancia o cuerpo a cuerpo.
 - Diseño responsive para escritorio, tablet y móvil.
