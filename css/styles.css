@@ -481,7 +481,7 @@ input[type="checkbox"] {
     text-decoration: none;
 }
 
-.options-reset-button {
+.options-menu-panel .options-reset-button {
     margin-top: 3px;
     border-color: var(--danger);
 }
