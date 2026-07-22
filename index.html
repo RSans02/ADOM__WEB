@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link rel="icon" type="image/png" href="favicon.png">
     <link rel="stylesheet" href="css/styles.css?v=39">
 </head>
+
 <body>
     <div class="app-shell" id="appShell">
         <header class="topbar">
@@ -24,14 +26,17 @@
                 <select id="campaignSelector" aria-label="Campaña activa"></select>
                 <label for="characterSelector">Personaje</label>
                 <select id="characterSelector" aria-label="Personaje activo"></select>
-                <button class="character-manager-button" id="openCharacterLibraryButton" type="button">Personajes</button>
+                <button class="character-manager-button" id="openCharacterLibraryButton"
+                    type="button">Personajes</button>
             </div>
 
             <div class="form-switcher" role="tablist" aria-label="Forma del personaje">
-                <button class="form-tab is-active" id="humanTab" type="button" role="tab" aria-selected="true" data-form="human">
+                <button class="form-tab is-active" id="humanTab" type="button" role="tab" aria-selected="true"
+                    data-form="human">
                     Forma humana
                 </button>
-                <button class="form-tab" id="ecstasyTab" type="button" role="tab" aria-selected="false" data-form="ecstasy">
+                <button class="form-tab" id="ecstasyTab" type="button" role="tab" aria-selected="false"
+                    data-form="ecstasy">
                     Forma de éxtasis
                 </button>
             </div>
@@ -42,22 +47,26 @@
                 <details class="options-menu" id="optionsMenu">
                     <summary class="button button-secondary">Opciones</summary>
                     <div class="options-menu-panel">
-                        <button class="button button-primary" id="shareButton" type="button">Compartir</button>
-                        <button class="button button-secondary" id="exportButton" type="button">Exportar personaje</button>
+                        <button class="button button-primary" id="shareButton" type="button">Compartir ficha</button>
+                        <button class="button button-secondary" id="exportButton" type="button">Exportar
+                            personaje</button>
                         <label class="button button-secondary file-button">
                             Importar personaje
                             <input id="importInput" type="file" accept="application/json,.json">
                         </label>
-                        <button class="button button-secondary" id="exportCampaignButton" type="button">Exportar campaña</button>
+                        <button class="button button-secondary" id="exportCampaignButton" type="button">Exportar
+                            campaña</button>
                         <label class="button button-secondary file-button">
                             Importar campaña
                             <input id="importCampaignInput" type="file" accept="application/json,.json">
                         </label>
                         <label class="button button-secondary file-button">
                             Importar personaje Excel
-                            <input id="excelImportInput" type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx">
+                            <input id="excelImportInput" type="file"
+                                accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx">
                         </label>
-                        <button class="button button-danger button-quiet options-reset-button" id="resetButton" type="button">Restablecer</button>
+                        <button class="button button-danger button-quiet options-reset-button" id="resetButton"
+                            type="button">Restablecer</button>
                     </div>
                 </details>
             </div>
@@ -85,8 +94,12 @@
                         <div class="card-header">
                             <h2 id="attributesTitle">Atributos</h2>
                             <div class="header-tools">
-                                <button class="order-link-button" id="attributesOrderLinkButton" type="button" aria-pressed="true" aria-label="Desvincular el orden de Atributos" hidden>
-                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                <button class="order-link-button" id="attributesOrderLinkButton" type="button"
+                                    aria-pressed="true" aria-label="Desvincular el orden de Atributos" hidden>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                    </svg>
                                 </button>
                                 <span class="header-total" id="attributesTotal">0</span>
                             </div>
@@ -98,8 +111,12 @@
                         <div class="card-header">
                             <h2 id="skillsTitle">Habilidades</h2>
                             <div class="header-tools">
-                                <button class="order-link-button" id="skillsOrderLinkButton" type="button" aria-pressed="true" aria-label="Desvincular el orden de Habilidades" hidden>
-                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                                <button class="order-link-button" id="skillsOrderLinkButton" type="button"
+                                    aria-pressed="true" aria-label="Desvincular el orden de Habilidades" hidden>
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                    </svg>
                                 </button>
                                 <span class="header-total" id="skillsTotal">0</span>
                             </div>
@@ -155,7 +172,8 @@
                         </div>
                         <div class="card-body" id="combatPanel"></div>
                         <div class="card-footer">
-                            <button class="text-button" id="addWeaponButton" type="button">+ Añadir arma o ataque</button>
+                            <button class="text-button" id="addWeaponButton" type="button">+ Añadir arma o
+                                ataque</button>
                         </div>
                     </section>
 
@@ -173,7 +191,8 @@
                         </div>
                         <div class="card-body repeatable-list" id="arcaneSkillsList"></div>
                         <div class="card-footer">
-                            <button class="text-button" id="addArcaneSkillButton" type="button">+ Añadir habilidad arcana</button>
+                            <button class="text-button" id="addArcaneSkillButton" type="button">+ Añadir habilidad
+                                arcana</button>
                         </div>
                     </section>
 
@@ -189,18 +208,25 @@
                 <div class="sheet-portrait-column">
                     <section class="character-portrait-card" aria-label="Imagen del personaje">
                         <div class="portrait-preview-wrap" id="portraitPreviewWrap" data-frame="square">
-                            <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje" draggable="false" hidden>
-                            <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A</div>
+                            <img id="characterPortrait" class="character-portrait" alt="Imagen del personaje"
+                                draggable="false" hidden>
+                            <div id="characterPortraitPlaceholder" class="portrait-placeholder" aria-hidden="true">A
+                            </div>
                         </div>
                         <div class="portrait-editor-controls" id="portraitEditorControls" hidden>
                             <label class="field portrait-url-field">
                                 <span>URL pública de la imagen</span>
                                 <div class="portrait-url-row">
-                                    <input id="characterImageUrl" type="url" placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off" spellcheck="false">
-                                    <button id="applyImageUrlButton" class="button button-secondary" type="button">Añadir</button>
-                                    <button id="clearImageUrlButton" class="button button-danger button-quiet" type="button" hidden>Quitar</button>
+                                    <input id="characterImageUrl" type="url"
+                                        placeholder="https://ejemplo.com/personaje.jpg" autocomplete="off"
+                                        spellcheck="false">
+                                    <button id="applyImageUrlButton" class="button button-secondary"
+                                        type="button">Añadir</button>
+                                    <button id="clearImageUrlButton" class="button button-danger button-quiet"
+                                        type="button" hidden>Quitar</button>
                                 </div>
-                                <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o similar.</small>
+                                <small>Usa un enlace directo público que termine normalmente en .jpg, .png, .webp o
+                                    similar.</small>
                             </label>
                             <div class="portrait-adjustments" id="portraitAdjustments" hidden>
                                 <label for="characterImageFrame">Marco</label>
@@ -211,27 +237,35 @@
                                 <label for="characterImageZoom">Zoom</label>
                                 <input id="characterImageZoom" type="range" min="1" max="3" step="0.05" value="1">
                                 <output id="characterImageZoomValue" for="characterImageZoom">100%</output>
-                                <button id="resetImageTransformButton" class="button button-secondary" type="button">Centrar</button>
+                                <button id="resetImageTransformButton" class="button button-secondary"
+                                    type="button">Centrar</button>
                             </div>
-                            <small class="portrait-adjustment-help" id="portraitAdjustmentHelp" hidden>Arrastra la imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
+                            <small class="portrait-adjustment-help" id="portraitAdjustmentHelp" hidden>Arrastra la
+                                imagen para encuadrarla. Usa la rueda o el control para cambiar el zoom.</small>
                         </div>
                     </section>
 
                     <section class="appearance-card" aria-labelledby="appearanceTitle">
                         <div class="card-header">
                             <h2 id="appearanceTitle">Apariencia</h2>
-                            <button id="resetAppearanceButton" class="icon-button appearance-reset-button" type="button" title="Restablecer apariencia" aria-label="Restablecer colores de apariencia">↺</button>
+                            <button id="resetAppearanceButton" class="icon-button appearance-reset-button" type="button"
+                                title="Restablecer apariencia" aria-label="Restablecer colores de apariencia">↺</button>
                         </div>
                         <div class="card-body appearance-body">
                             <div class="color-setting">
                                 <span>Forma humana</span>
-                                <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano" aria-label="Color principal de la forma humana">
-                                <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano" aria-label="Color de fondo de la forma humana">
+                                <input id="humanColorInput" type="color" value="#a64d78" title="Color principal humano"
+                                    aria-label="Color principal de la forma humana">
+                                <input id="humanBackgroundInput" type="color" value="#ead5df" title="Fondo humano"
+                                    aria-label="Color de fondo de la forma humana">
                             </div>
                             <div class="color-setting">
                                 <span>Forma de éxtasis</span>
-                                <input id="ecstasyColorInput" type="color" value="#3f7f8b" title="Color principal de éxtasis" aria-label="Color principal de la forma de éxtasis">
-                                <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis" aria-label="Color de fondo de la forma de éxtasis">
+                                <input id="ecstasyColorInput" type="color" value="#3f7f8b"
+                                    title="Color principal de éxtasis"
+                                    aria-label="Color principal de la forma de éxtasis">
+                                <input id="ecstasyBackgroundInput" type="color" value="#d4e4e7" title="Fondo de éxtasis"
+                                    aria-label="Color de fondo de la forma de éxtasis">
                             </div>
                         </div>
                     </section>
@@ -244,11 +278,18 @@
                         </div>
                         <dl class="summary-list" id="checksPanel"></dl>
                         <div class="xp-block">
-                            <span class="xp-label">Experiencia <span class="damage-formula-help xp-breakdown-help" tabindex="0" aria-label="Ver desglose de la experiencia">?<span class="damage-formula-tooltip xp-breakdown-tooltip" id="experienceBreakdownTooltip" role="tooltip"></span></span></span>
+                            <span class="xp-label">Experiencia <span class="damage-formula-help xp-breakdown-help"
+                                    tabindex="0" aria-label="Ver desglose de la experiencia">?<span
+                                        class="damage-formula-tooltip xp-breakdown-tooltip"
+                                        id="experienceBreakdownTooltip" role="tooltip"></span></span></span>
                             <strong id="experienceTotal">0</strong>
                         </div>
                         <div class="xp-block xp-adjusted" id="adjustedExperienceRow" hidden>
-                            <span class="xp-label">XP − distorsión + lazos <span class="damage-formula-help xp-breakdown-help" tabindex="0" aria-label="Ver desglose de la experiencia ajustada">?<span class="damage-formula-tooltip xp-breakdown-tooltip" id="adjustedExperienceBreakdownTooltip" role="tooltip"></span></span></span>
+                            <span class="xp-label">XP − distorsión + lazos <span
+                                    class="damage-formula-help xp-breakdown-help" tabindex="0"
+                                    aria-label="Ver desglose de la experiencia ajustada">?<span
+                                        class="damage-formula-tooltip xp-breakdown-tooltip"
+                                        id="adjustedExperienceBreakdownTooltip" role="tooltip"></span></span></span>
                             <strong id="adjustedExperience">0</strong>
                         </div>
                         <div class="tier-block">
@@ -269,22 +310,28 @@
                                 <h2 id="roll20Title">Roll20</h2>
                             </div>
                             <div class="roll20-heading-actions">
-                                <span class="connection-pill" id="connectionStatus" data-state="unknown">Sin comprobar</span>
+                                <span class="connection-pill" id="connectionStatus" data-state="unknown">Sin
+                                    comprobar</span>
                                 <a class="roll20-setup-button" id="roll20SetupLink" href="instalar.html">Configurar</a>
                             </div>
                         </div>
-                        <div class="roll20-chat" id="roll20Chat" role="log" aria-live="polite" aria-label="Mensajes del chat de Roll20">
-                            <p class="roll20-chat-empty" id="roll20ChatEmpty">Abre una partida de Roll20 con el puente de Tampermonkey activo para ver aquí el chat.</p>
+                        <div class="roll20-chat" id="roll20Chat" role="log" aria-live="polite"
+                            aria-label="Mensajes del chat de Roll20">
+                            <p class="roll20-chat-empty" id="roll20ChatEmpty">Abre una partida de Roll20 con el puente
+                                de Tampermonkey activo para ver aquí el chat.</p>
                         </div>
                         <label class="field field-small">
                             <span>Mensaje o comando</span>
                             <div class="command-row">
                                 <input id="manualCommand" type="text" value="" spellcheck="false">
-                                <button class="button button-secondary" id="resetManualCommandButton" type="button" title="Usar el comando base sin modificador">3d10</button>
-                                <button class="button button-primary" id="sendCommandButton" type="button">Enviar</button>
+                                <button class="button button-secondary" id="resetManualCommandButton" type="button"
+                                    title="Usar el comando base sin modificador">3d10</button>
+                                <button class="button button-primary" id="sendCommandButton"
+                                    type="button">Enviar</button>
                             </div>
                         </label>
-                        <p class="bridge-message" id="bridgeMessage" aria-live="polite">El estado se confirmará al enviar el primer comando.</p>
+                        <p class="bridge-message" id="bridgeMessage" aria-live="polite">El estado se confirmará al
+                            enviar el primer comando.</p>
                     </section>
 
                     <section class="help-card" id="formHelp"></section>
@@ -298,7 +345,8 @@
                     <p class="eyebrow">Organización</p>
                     <h2 id="characterLibraryTitle">Campañas y personajes</h2>
                 </div>
-                <button class="icon-button" id="closeCharacterLibraryButton" type="button" aria-label="Cerrar">×</button>
+                <button class="icon-button" id="closeCharacterLibraryButton" type="button"
+                    aria-label="Cerrar">×</button>
             </div>
 
             <section class="library-section" aria-label="Gestión de campañas">
@@ -307,7 +355,8 @@
                     <select id="libraryCampaignSelector"></select>
                     <button class="button button-secondary" id="addCampaignButton" type="button">+ Campaña</button>
                     <button class="button button-secondary" id="renameCampaignButton" type="button">Renombrar</button>
-                    <button class="button button-danger button-quiet" id="deleteCampaignButton" type="button">Eliminar</button>
+                    <button class="button button-danger button-quiet" id="deleteCampaignButton"
+                        type="button">Eliminar</button>
                 </div>
             </section>
 
@@ -324,7 +373,8 @@
                     <div class="library-folder-actions">
                         <button class="button button-secondary" id="addFolderButton" type="button">+ Carpeta</button>
                         <button class="button button-secondary" id="renameFolderButton" type="button">Renombrar</button>
-                        <button class="button button-danger button-quiet" id="deleteFolderButton" type="button">Eliminar</button>
+                        <button class="button button-danger button-quiet" id="deleteFolderButton"
+                            type="button">Eliminar</button>
                     </div>
                 </div>
                 <div class="character-library-list" id="characterLibraryList"></div>
@@ -333,8 +383,10 @@
             <div class="character-library-footer">
                 <span id="characterLibraryCount">0 personajes</span>
                 <div>
-                    <button class="button button-danger button-quiet" id="deleteCharacterButton" type="button">Eliminar personaje activo</button>
-                    <button class="button button-primary" id="newCharacterButton" type="button">+ Nuevo personaje</button>
+                    <button class="button button-danger button-quiet" id="deleteCharacterButton" type="button">Eliminar
+                        personaje activo</button>
+                    <button class="button button-primary" id="newCharacterButton" type="button">+ Nuevo
+                        personaje</button>
                 </div>
             </div>
         </dialog>
@@ -349,4 +401,5 @@
     <script src="js/ui.js?v=44"></script>
     <script src="js/app.js"></script>
 </body>
+
 </html>
