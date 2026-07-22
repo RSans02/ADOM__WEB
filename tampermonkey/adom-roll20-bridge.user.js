@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.6.1
+// @version      0.6.2
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -109,9 +109,9 @@
             "[ADOM Bridge] Ejecutándose en la ficha externa."
         );
 
-        document.documentElement.dataset.adomBridgeVersion = "0.6.1";
+        document.documentElement.dataset.adomBridgeVersion = "0.6.2";
         window.dispatchEvent(new CustomEvent("adom-sheet:bridge-installed", {
-            detail: { version: "0.6.1" }
+            detail: { version: "0.6.2" }
         }));
 
         window.addEventListener(
@@ -568,7 +568,23 @@
 
         dispatchInputEvents(chatInput);
         beforeSend?.();
-        dispatchEnterKeyEvents(chatInput);
+
+        const sendButton = findRoll20ChatSendButton();
+        if (!sendButton) {
+            throw new Error(
+                "No se ha encontrado el botón Enviar del chat de Roll20."
+            );
+        }
+
+        sendButton.click();
+
+        const wasSent = await waitForChatInputToClear(chatInput, command);
+        if (!wasSent) {
+            throw new Error(
+                "Roll20 no ha aceptado el mensaje. Abre el chat de Roll20 y vuelve a intentarlo."
+            );
+        }
+
         return speakerSelection;
     }
 
@@ -595,6 +611,8 @@
     function findRoll20ChatTabControl() {
         const selectors = [
             "#textchatbutton",
+            "#textchattab > a",
+            "#textchattab",
             "#rightsidebar-tabs a[href='#textchat']",
             "a[href='#textchat']",
             "[aria-controls='textchat']",
@@ -610,6 +628,43 @@
         }
 
         return null;
+    }
+
+    function findRoll20ChatSendButton() {
+        const selectors = [
+            "#chatSendBtn",
+            "#textchat-input button[type='submit']",
+            "#textchat-input button.btn"
+        ];
+
+        for (const selector of selectors) {
+            const button = document.querySelector(selector);
+            if (button instanceof HTMLElement && isVisible(button)) return button;
+        }
+
+        return null;
+    }
+
+    function waitForChatInputToClear(chatInput, sentCommand) {
+        return new Promise(resolve => {
+            const deadline = Date.now() + 1_500;
+
+            const check = () => {
+                if (!chatInput.isConnected || chatInput.value !== sentCommand) {
+                    resolve(true);
+                    return;
+                }
+
+                if (Date.now() >= deadline) {
+                    resolve(false);
+                    return;
+                }
+
+                window.setTimeout(check, 50);
+            };
+
+            check();
+        });
     }
 
     function selectRoll20Speaker(speakerName) {
@@ -707,38 +762,6 @@
             new Event("change", {
                 bubbles: true
             })
-        );
-    }
-
-    function dispatchEnterKeyEvents(element) {
-        const eventOptions = {
-            key: "Enter",
-            code: "Enter",
-            keyCode: 13,
-            which: 13,
-            bubbles: true,
-            cancelable: true
-        };
-
-        element.dispatchEvent(
-            new KeyboardEvent(
-                "keydown",
-                eventOptions
-            )
-        );
-
-        element.dispatchEvent(
-            new KeyboardEvent(
-                "keypress",
-                eventOptions
-            )
-        );
-
-        element.dispatchEvent(
-            new KeyboardEvent(
-                "keyup",
-                eventOptions
-            )
         );
     }
 
