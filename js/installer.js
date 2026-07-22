@@ -11,6 +11,8 @@
     const bridge = new global.ADOM.Roll20.Roll20Bridge({ timeoutMs: 6500 });
     let bridgeVersion = document.documentElement.dataset.adomBridgeVersion || "";
     let roll20Connected = false;
+    let automaticCheckStarted = false;
+    let connectionCheckRunning = false;
 
     elements.browserName.textContent = browser.name;
     elements.tampermonkeyLink.href = browser.installUrl;
@@ -24,6 +26,7 @@
     global.addEventListener("adom-sheet:bridge-installed", event => {
         bridgeVersion = String(event.detail?.version || document.documentElement.dataset.adomBridgeVersion || "instalado");
         renderProgress();
+        startAutomaticConnectionCheck();
     });
 
     elements.bridgeInstalledButton.addEventListener("click", () => global.location.reload());
@@ -31,6 +34,7 @@
     elements.copyGuideLink.addEventListener("click", copyGuideLink);
 
     renderProgress();
+    startAutomaticConnectionCheck();
 
     function detectBrowser() {
         const userAgent = navigator.userAgent;
@@ -97,13 +101,21 @@
         elements.readyPanel.hidden = !ready;
     }
 
+    function startAutomaticConnectionCheck() {
+        if (!bridgeVersion || automaticCheckStarted) return;
+        automaticCheckStarted = true;
+        global.setTimeout(() => checkConnection(), 350);
+    }
+
     async function checkConnection() {
+        if (connectionCheckRunning) return;
         if (!bridgeVersion) {
             elements.connectionResult.dataset.state = "error";
             elements.connectionResult.textContent = "Primero instala el puente ADOM y recarga esta página.";
             return;
         }
 
+        connectionCheckRunning = true;
         elements.checkConnectionButton.disabled = true;
         elements.checkConnectionButton.textContent = "Comprobando…";
         elements.connectionResult.dataset.state = "pending";
@@ -118,6 +130,7 @@
             elements.connectionResult.dataset.state = "error";
             elements.connectionResult.textContent = "No responde. Abre una partida de Roll20, recárgala y vuelve a comprobar.";
         } finally {
+            connectionCheckRunning = false;
             elements.checkConnectionButton.disabled = false;
             elements.checkConnectionButton.textContent = "Comprobar conexión";
             renderProgress();
