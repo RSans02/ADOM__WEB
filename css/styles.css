@@ -483,7 +483,7 @@ input[type="checkbox"] {
 
 .options-reset-button {
     margin-top: 3px;
-    border-top-color: rgba(159, 49, 64, 0.16);
+    border-color: var(--danger);
 }
 
 .button {
