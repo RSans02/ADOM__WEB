@@ -6,13 +6,13 @@
     <meta name="color-scheme" content="light">
     <title>ADOM - Ficha externa</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/styles.css?v=25">
+    <link rel="stylesheet" href="css/styles.css?v=26">
 </head>
 <body>
     <div class="app-shell" id="appShell">
         <header class="topbar">
             <div class="brand-block">
-                <span class="brand-mark" aria-hidden="true">A</span>
+                <img class="brand-mark" src="logo.png" alt="Logo oficial de ADOM">
                 <div>
                     <p class="eyebrow">Ficha externa</p>
                     <h1>ADOM</h1>
@@ -264,8 +264,11 @@
                             </div>
                             <span class="connection-pill" id="connectionStatus" data-state="unknown">Sin comprobar</span>
                         </div>
+                        <div class="roll20-chat" id="roll20Chat" role="log" aria-live="polite" aria-label="Mensajes del chat de Roll20">
+                            <p class="roll20-chat-empty" id="roll20ChatEmpty">Abre una partida de Roll20 con el puente de Tampermonkey activo para ver aquí el chat.</p>
+                        </div>
                         <label class="field field-small">
-                            <span>Comando manual</span>
+                            <span>Mensaje o comando</span>
                             <div class="command-row">
                                 <input id="manualCommand" type="text" value="" spellcheck="false">
                                 <button class="button button-secondary" id="resetManualCommandButton" type="button" title="Usar el comando base sin modificador">3d10</button>
@@ -286,8 +289,8 @@
     <script src="js/state.js?v=25"></script>
     <script src="js/xlsx-import.js"></script>
     <script src="js/calculations.js"></script>
-    <script src="js/roll20-bridge.js"></script>
-    <script src="js/ui.js?v=25"></script>
+    <script src="js/roll20-bridge.js?v=26"></script>
+    <script src="js/ui.js?v=26"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

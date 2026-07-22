@@ -76,6 +76,7 @@
             });
             this.store.addEventListener("save-state", event => this.renderSaveState(event.detail.state));
             this.bridge.addEventListener("status", event => this.renderBridgeStatus(event.detail));
+            this.bridge.addEventListener("chat", event => this.renderRoll20Chat(event.detail.messages));
         }
 
         collectElements() {
@@ -87,7 +88,7 @@
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "experienceBreakdownTooltip", "adjustedExperienceRow", "adjustedExperience", "adjustedExperienceBreakdownTooltip",
                 "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus",
-                "bridgeMessage", "formHelp", "toastRegion"
+                "bridgeMessage", "roll20Chat", "roll20ChatEmpty", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
         }
@@ -1412,15 +1413,22 @@
         }
 
         async sendManualCommand() {
-            await this.sendRollCommand(this.elements.manualCommand.value, "Comando manual");
+            const command = this.elements.manualCommand.value.trim();
+            if (!command) return;
+            const sent = await this.sendRollCommand(command, command.startsWith("/") ? "Comando" : "Mensaje");
+            if (!sent) return;
+            this.elements.manualCommand.value = "";
+            this.elements.manualCommand.title = "";
         }
 
         async sendRollCommand(command, label) {
             try {
                 await this.bridge.sendChatCommand(command);
                 this.showToast(`${label}: enviado a Roll20.`, "success");
+                return true;
             } catch (error) {
                 this.showToast(error.message, "error");
+                return false;
             }
         }
 
@@ -1429,6 +1437,80 @@
             this.elements.connectionStatus.dataset.state = state;
             this.elements.connectionStatus.textContent = state === "connected" ? "Conectado" : state === "error" ? "Sin respuesta" : "Enviando…";
             this.elements.bridgeMessage.textContent = detail.message;
+        }
+
+        renderRoll20Chat(messages) {
+            const chat = this.elements.roll20Chat;
+            if (!chat) return;
+            const wasNearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 45;
+            chat.replaceChildren();
+
+            if (!messages.length) {
+                const empty = document.createElement("p");
+                empty.className = "roll20-chat-empty";
+                empty.textContent = "El chat de Roll20 todavía no tiene mensajes.";
+                chat.append(empty);
+                return;
+            }
+
+            messages.forEach(message => {
+                const item = document.createElement("article");
+                item.className = "roll20-chat-message";
+                const speaker = document.createElement("strong");
+                speaker.textContent = message.speaker || "Roll20";
+                item.append(speaker);
+
+                if (message.kind === "roll" && message.roll) {
+                    item.classList.add("is-roll");
+                    item.append(this.createRoll20DiceDisplay(message.roll, message.text));
+                } else {
+                    const text = document.createElement("span");
+                    text.textContent = message.text || "";
+                    item.append(text);
+                }
+                chat.append(item);
+            });
+
+            if (wasNearBottom) chat.scrollTop = chat.scrollHeight;
+        }
+
+        createRoll20DiceDisplay(roll, fallbackText) {
+            const display = document.createElement("div");
+            display.className = "roll20-dice-display";
+
+            const formula = document.createElement("div");
+            formula.className = "roll20-dice-formula";
+            formula.textContent = `rolling ${roll.formula || "dados"}`;
+            display.append(formula);
+
+            const expression = document.createElement("div");
+            expression.className = "roll20-dice-expression";
+            const diceGroup = document.createElement("div");
+            diceGroup.className = "roll20-dice-group";
+            diceGroup.append(document.createTextNode("("));
+            (roll.dice || []).forEach((die, index) => {
+                if (index) diceGroup.append(document.createTextNode(" + "));
+                const dieValue = document.createElement("b");
+                dieValue.className = "roll20-die";
+                if (die.dropped) dieValue.classList.add("is-dropped");
+                dieValue.dataset.sides = die.sides || "die";
+                dieValue.textContent = die.value;
+                diceGroup.append(dieValue);
+            });
+            diceGroup.append(document.createTextNode(")"));
+            expression.append(diceGroup);
+
+            const equals = document.createElement("span");
+            equals.className = "roll20-dice-equals";
+            equals.textContent = "=";
+            expression.append(equals);
+
+            const total = document.createElement("b");
+            total.className = "roll20-dice-total";
+            total.textContent = roll.total || String(fallbackText || "").match(/(?:=\s*)?(-?\d+)\s*$/)?.[1] || "?";
+            expression.append(total);
+            display.append(expression);
+            return display;
         }
 
         renderSaveState(state) {

@@ -21,7 +21,7 @@ La ficha utiliza el protocolo ya validado:
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
 - Tipos de mensaje: `CHAT_COMMAND` y `DAMAGE_ROLL`
-- Versión del protocolo: `2`
+- Versión del protocolo: `3`
 
 El userscript debe incluir:
 
@@ -41,7 +41,8 @@ El userscript debe incluir:
 - La primera visita carga una ficha vacía si el navegador no tiene ningún personaje guardado.
 - Importación y exportación del personaje en JSON.
 - Importación de cualquier `.xlsx` basado en la plantilla ADOM con las hojas `Forma humana` y `Forma de Éxtasis`; se carga en el personaje seleccionado e incluye la imagen incrustada cuando es compatible.
-- Envío de comandos manuales al chat de Roll20.
+- Chat de Roll20 integrado: historial sincronizado, mensajes y comandos desde la ficha.
+- Las tiradas del chat muestran su fórmula, los dados individuales y el total con formato visual.
 - Botones de tirada en atributos y habilidades.
 - Tiradas de daño de armas mediante dados `m`, `c` y `M`, con selector de daño a distancia o cuerpo a cuerpo.
 - Diseño responsive para escritorio, tablet y móvil.

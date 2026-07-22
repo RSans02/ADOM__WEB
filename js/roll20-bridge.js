@@ -5,7 +5,8 @@
 
     const EVENTS = Object.freeze({
         REQUEST: "adom-sheet:bridge-request",
-        RESPONSE: "adom-sheet:bridge-response"
+        RESPONSE: "adom-sheet:bridge-response",
+        CHAT_UPDATE: "adom-sheet:chat-update"
     });
 
     const MESSAGE_TYPES = Object.freeze({
@@ -23,10 +24,11 @@
     class Roll20Bridge extends EventTarget {
         constructor(options) {
             super();
-            this.protocolVersion = 2;
+            this.protocolVersion = 3;
             this.timeoutMs = options?.timeoutMs || 8000;
             this.pending = new Map();
             global.addEventListener(EVENTS.RESPONSE, event => this.handleResponse(event));
+            global.addEventListener(EVENTS.CHAT_UPDATE, event => this.handleChatUpdate(event));
         }
 
         sendChatCommand(command) {
@@ -112,6 +114,15 @@
                 this.dispatchEvent(new CustomEvent("status", { detail: { state: "error", message: error.message } }));
                 pending.reject(error);
             }
+        }
+
+        handleChatUpdate(event) {
+            const messages = event.detail?.messages;
+            if (!Array.isArray(messages)) return;
+            this.dispatchEvent(new CustomEvent("chat", { detail: { messages } }));
+            this.dispatchEvent(new CustomEvent("status", {
+                detail: { state: "connected", message: "Chat sincronizado con Roll20." }
+            }));
         }
     }
 

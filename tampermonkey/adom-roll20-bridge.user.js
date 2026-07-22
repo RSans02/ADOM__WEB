@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.3.5
+// @version      0.4.1
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 //
 // Ficha externa local:
@@ -27,16 +27,18 @@
      */
 
     const PROTOCOL = Object.freeze({
-        VERSION: 2,
+        VERSION: 3,
 
         CHANNELS: Object.freeze({
             REQUEST: "adom-sheet:bridge-request",
-            RESPONSE: "adom-sheet:bridge-response"
+            RESPONSE: "adom-sheet:bridge-response",
+            CHAT: "adom-sheet:chat-state"
         }),
 
         EVENTS: Object.freeze({
             PAGE_REQUEST: "adom-sheet:bridge-request",
-            PAGE_RESPONSE: "adom-sheet:bridge-response"
+            PAGE_RESPONSE: "adom-sheet:bridge-response",
+            PAGE_CHAT_UPDATE: "adom-sheet:chat-update"
         }),
 
         MESSAGE_TYPES: Object.freeze({
@@ -109,6 +111,14 @@
             PROTOCOL.CHANNELS.RESPONSE,
             handleBridgeResponseChange
         );
+
+        GM_addValueChangeListener(
+            PROTOCOL.CHANNELS.CHAT,
+            handleChatStateChange
+        );
+
+        const currentChat = GM_getValue(PROTOCOL.CHANNELS.CHAT, null);
+        if (currentChat) publishChatToExternalPage(currentChat);
     }
 
     function handleExternalPageRequest(event) {
@@ -163,6 +173,17 @@
         );
     }
 
+    function handleChatStateChange(key, oldValue, newValue, remote) {
+        if (!remote || !newValue) return;
+        publishChatToExternalPage(newValue);
+    }
+
+    function publishChatToExternalPage(chatState) {
+        window.dispatchEvent(new CustomEvent(PROTOCOL.EVENTS.PAGE_CHAT_UPDATE, {
+            detail: chatState
+        }));
+    }
+
     /*
      * ============================================================
      * PUENTE DE ROLL20
@@ -193,6 +214,69 @@
         if (pendingRequest) {
             processBridgeMessage(pendingRequest);
         }
+
+        initializeRoll20ChatMirror();
+    }
+
+    function initializeRoll20ChatMirror() {
+        let updateTimer = null;
+        const publish = () => {
+            const messages = readRoll20ChatMessages();
+            GM_setValue(PROTOCOL.CHANNELS.CHAT, { messages, createdAt: Date.now() });
+        };
+        const schedule = () => {
+            window.clearTimeout(updateTimer);
+            updateTimer = window.setTimeout(publish, 120);
+        };
+        const observer = new MutationObserver(schedule);
+        observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+        schedule();
+    }
+
+    function readRoll20ChatMessages() {
+        let nodes = Array.from(document.querySelectorAll("#textchat .message"));
+        if (!nodes.length) nodes = Array.from(document.querySelectorAll("#textchat .content > div"));
+        return nodes.slice(-80).map((node, index) => {
+            const speakerNode = node.querySelector(".by, .who, .message-name, [class*='speaker']");
+            const speaker = String(speakerNode?.textContent || "Roll20").replace(/:\s*$/, "").trim();
+            let text = String(node.innerText || node.textContent || "").trim();
+            if (speakerNode) {
+                const speakerText = String(speakerNode.textContent || "").trim();
+                if (text.startsWith(speakerText)) text = text.slice(speakerText.length).replace(/^:\s*/, "").trim();
+            }
+            const roll = extractRollDisplay(node);
+            return {
+                id: `${index}-${text.slice(0, 40)}`,
+                speaker,
+                text,
+                kind: roll ? "roll" : "message",
+                roll
+            };
+        }).filter(message => message.text);
+    }
+
+    function extractRollDisplay(node) {
+        const rollNode = node.matches(".rollresult") ? node : node.querySelector(".rollresult");
+        if (!rollNode) return null;
+
+        const formula = String(
+            rollNode.querySelector(".formula:not(.formattedformula)")?.textContent || ""
+        ).replace(/^rolling\s*/i, "").trim();
+        const dice = Array.from(rollNode.querySelectorAll(".diceroll .didroll")).map(die => {
+            const dieNode = die.closest(".diceroll");
+            const sidesClass = Array.from(dieNode?.classList || []).find(name => /^d\d+$/i.test(name));
+            return {
+                value: String(die.textContent || "").trim(),
+                sides: sidesClass ? sidesClass.toLowerCase() : "die",
+                dropped: Boolean(dieNode?.classList.contains("dropped"))
+            };
+        }).filter(die => die.value);
+        const total = String(
+            rollNode.querySelector(".rolled, .roll-total, [class*='rolltotal']")?.textContent || ""
+        ).trim();
+
+        if (!formula && !dice.length && !total) return null;
+        return { formula, dice, total };
     }
 
     function handleBridgeRequestChange(
