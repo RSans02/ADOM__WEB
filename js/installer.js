@@ -3,7 +3,8 @@
 
     const elements = Object.fromEntries([
         "overallStatus", "overallStatusTitle", "overallStatusText", "extensionStep", "bridgeStep", "roll20Step",
-        "browserName", "tampermonkeyLink", "chromiumNote", "chromiumPermissionLead", "userScriptsPermissionLabel", "bridgeInstalledButton", "bridgeVersion",
+        "browserName", "tampermonkeyLink", "chromiumNote", "chromiumPermissionLead", "userScriptsPermissionLabel", "bridgeStepTitle", "bridgeStepDescription",
+        "bridgeInstallLink", "bridgeInstalledButton", "bridgeVersion",
         "checkConnectionButton", "connectionResult", "readyPanel", "copyGuideLink", "copyResult"
     ].map(id => [id, document.getElementById(id)]));
 
@@ -14,6 +15,7 @@
     let roll20Connected = false;
     let automaticCheckStarted = false;
     let connectionCheckRunning = false;
+    let bridgeActionPending = false;
 
     elements.browserName.textContent = browser.name;
     elements.tampermonkeyLink.href = browser.installUrl;
@@ -30,7 +32,12 @@
         startAutomaticConnectionCheck();
     });
 
+    elements.bridgeInstallLink.addEventListener("click", () => {
+        bridgeActionPending = true;
+    });
     elements.bridgeInstalledButton.addEventListener("click", () => global.location.reload());
+    global.addEventListener("focus", refreshAfterBridgeAction);
+    document.addEventListener("visibilitychange", refreshAfterBridgeAction);
     elements.checkConnectionButton.addEventListener("click", checkConnection);
     elements.copyGuideLink.addEventListener("click", copyGuideLink);
 
@@ -89,8 +96,9 @@
     function renderProgress() {
         const bridgeInstalled = Boolean(bridgeVersion);
         const updateRequired = bridgeNeedsUpdate();
+        const bridgeReady = bridgeInstalled && !updateRequired;
         setStepState(elements.extensionStep, bridgeInstalled);
-        setStepState(elements.bridgeStep, bridgeInstalled && !updateRequired);
+        setStepState(elements.bridgeStep, bridgeReady);
         if (updateRequired) {
             elements.bridgeStep.dataset.state = "update";
             elements.bridgeStep.querySelector(".step-state").textContent = "Actualizar";
@@ -101,8 +109,20 @@
             : bridgeInstalled
                 ? `Puente ADOM ${bridgeVersion} detectado y activo.`
             : "Puente no detectado en esta pestaña.";
-        document.getElementById("bridgeInstallLink").textContent = updateRequired ? "Actualizar puente ADOM" : "Instalar puente ADOM";
+        elements.bridgeStepTitle.textContent = bridgeReady
+            ? "Puente ADOM instalado"
+            : updateRequired
+                ? "Actualiza el puente ADOM"
+                : "Instala el puente ADOM";
+        elements.bridgeStepDescription.innerHTML = bridgeReady
+            ? "La versión instalada está al día y se ha detectado automáticamente."
+            : updateRequired
+                ? "Se abrirá Tampermonkey. Pulsa <strong>Actualizar</strong> y vuelve a esta pestaña."
+                : "Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.";
+        elements.bridgeInstallLink.textContent = updateRequired ? "Actualizar puente ADOM" : "Instalar puente ADOM";
         elements.bridgeInstalledButton.textContent = updateRequired ? "Ya lo he actualizado" : "Ya lo he instalado";
+        elements.bridgeInstallLink.hidden = bridgeReady;
+        elements.bridgeInstalledButton.hidden = bridgeReady;
 
         const ready = bridgeInstalled && !updateRequired && roll20Connected;
         elements.overallStatus.dataset.state = ready ? "ready" : updateRequired ? "update" : "pending";
@@ -119,6 +139,12 @@
                 ? "El puente está instalado; falta comprobar Roll20."
                 : "Instala Tampermonkey y el puente ADOM.";
         elements.readyPanel.hidden = !ready;
+    }
+
+    function refreshAfterBridgeAction() {
+        if (!bridgeActionPending || document.visibilityState === "hidden") return;
+        bridgeActionPending = false;
+        global.setTimeout(() => global.location.reload(), 250);
     }
 
     function startAutomaticConnectionCheck() {

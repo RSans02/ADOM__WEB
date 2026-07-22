@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>Instalar ADOM con Roll20</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/installer.css?v=11">
+    <link rel="stylesheet" href="css/installer.css?v=12">
     <link rel="stylesheet" href="css/brand.css?v=1">
 </head>
 <body>
@@ -52,8 +52,8 @@
                     <span class="step-number">2</span>
                     <span class="step-state">Pendiente</span>
                 </div>
-                <h2>Instala el puente ADOM</h2>
-                <p class="step-description">Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.</p>
+                <h2 id="bridgeStepTitle">Instala el puente ADOM</h2>
+                <p class="step-description" id="bridgeStepDescription">Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.</p>
                 <div class="setup-preaction" aria-hidden="true"></div>
                 <a class="action-button primary" id="bridgeInstallLink" href="https://adom-web.vercel.app/tampermonkey/adom-roll20-bridge.user.js" target="_blank" rel="noopener">Instalar puente ADOM</a>
                 <button class="action-button secondary" id="bridgeInstalledButton" type="button">Ya lo he instalado</button>
@@ -112,6 +112,6 @@
     </footer>
 
     <script src="js/roll20-bridge.js?v=31"></script>
-    <script src="js/installer.js?v=4"></script>
+    <script src="js/installer.js?v=5"></script>
 </body>
 </html>
