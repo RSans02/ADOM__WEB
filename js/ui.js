@@ -90,7 +90,7 @@
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "experienceBreakdownTooltip", "adjustedExperienceRow", "adjustedExperience", "adjustedExperienceBreakdownTooltip",
-                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus",
+                "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus", "roll20SetupLink",
                 "bridgeMessage", "roll20Chat", "roll20ChatEmpty", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
@@ -1705,6 +1705,8 @@
             const state = detail.state === "connected" ? "connected" : detail.state === "error" ? "error" : "unknown";
             this.elements.connectionStatus.dataset.state = state;
             this.elements.connectionStatus.textContent = state === "connected" ? "Conectado" : state === "error" ? "Sin respuesta" : "Enviando…";
+            this.elements.roll20SetupLink.classList.toggle("is-attention", state === "error");
+            this.elements.roll20SetupLink.textContent = state === "error" ? "Instalar o reparar" : "Configurar";
             this.elements.bridgeMessage.textContent = detail.message;
         }
 

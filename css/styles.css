@@ -1522,6 +1522,40 @@ input[type="checkbox"] {
     margin-bottom: 14px;
 }
 
+.roll20-heading-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: flex-end;
+    gap: 6px;
+    flex-direction: column;
+}
+
+.roll20-setup-button {
+    padding: 3px 7px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    color: var(--muted);
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 1.25;
+    text-decoration: none;
+    transition: color var(--transition), border-color var(--transition), background var(--transition);
+}
+
+.roll20-setup-button:hover,
+.roll20-setup-button:focus-visible {
+    color: var(--accent-strong);
+    border-color: rgba(var(--accent-rgb), 0.22);
+    background: rgba(var(--accent-rgb), 0.07);
+    outline: none;
+}
+
+.roll20-setup-button.is-attention {
+    color: #fff;
+    border-color: var(--danger);
+    background: var(--danger);
+}
+
 .roll20-chat {
     display: grid;
     align-content: start;
@@ -2239,16 +2273,6 @@ input[type="checkbox"] {
 
 .reset-confirm-dialog strong {
     color: var(--danger);
-}
-
-.bridge-setup-link {
-    display: inline-flex;
-    margin-top: 2px;
-    color: var(--accent-strong);
-    font-size: 0.72rem;
-    font-weight: 800;
-    line-height: 1.4;
-    text-underline-offset: 3px;
 }
 
 .reset-danger-message {
