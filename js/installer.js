@@ -3,7 +3,7 @@
 
     const elements = Object.fromEntries([
         "overallStatus", "overallStatusTitle", "overallStatusText", "extensionStep", "bridgeStep", "roll20Step",
-        "browserName", "tampermonkeyLink", "chromiumNote", "bridgeInstalledButton", "bridgeVersion",
+        "browserName", "tampermonkeyLink", "chromiumNote", "chromiumPermissionLead", "userScriptsPermissionLabel", "bridgeInstalledButton", "bridgeVersion",
         "checkConnectionButton", "connectionResult", "readyPanel", "copyGuideLink", "copyResult"
     ].map(id => [id, document.getElementById(id)]));
 
@@ -16,6 +16,10 @@
     elements.tampermonkeyLink.href = browser.installUrl;
     elements.tampermonkeyLink.textContent = `Instalar Tampermonkey para ${browser.name}`;
     elements.chromiumNote.hidden = !browser.chromium;
+    elements.chromiumPermissionLead.textContent = browser.name === "Opera"
+        ? "En Opera, abre Administrar extensión y activa"
+        : "Después, abre los detalles de Tampermonkey y activa";
+    elements.userScriptsPermissionLabel.textContent = browser.userScriptsPermissionLabel || "Permitir scripts de usuario";
 
     global.addEventListener("adom-sheet:bridge-installed", event => {
         bridgeVersion = String(event.detail?.version || document.documentElement.dataset.adomBridgeVersion || "instalado");
@@ -41,6 +45,7 @@
             return {
                 name: "Microsoft Edge",
                 chromium: true,
+                userScriptsPermissionLabel: "Permitir scripts de usuario",
                 installUrl: "https://www.tampermonkey.net/index.php?browser=edge&locale=es"
             };
         }
@@ -48,6 +53,7 @@
             return {
                 name: "Opera",
                 chromium: true,
+                userScriptsPermissionLabel: "Permitir secuencias de comandos del usuario",
                 installUrl: "https://www.tampermonkey.net/index.php?browser=opera&locale=es"
             };
         }
@@ -61,6 +67,7 @@
         return {
             name: /Brave/i.test(navigator.brave ? "Brave" : "") ? "Brave" : "Chrome",
             chromium: true,
+            userScriptsPermissionLabel: "Permitir scripts de usuario",
             installUrl: "https://www.tampermonkey.net/index.php?browser=chrome&locale=es"
         };
     }

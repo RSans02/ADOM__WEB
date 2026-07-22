@@ -43,7 +43,7 @@
                     <p class="browser-detection">Navegador detectado: <strong id="browserName">Comprobando…</strong></p>
                 </div>
                 <a class="action-button primary" id="tampermonkeyLink" href="https://www.tampermonkey.net/" target="_blank" rel="noopener">Instalar Tampermonkey</a>
-                <p class="chromium-note" id="chromiumNote" hidden>Después, abre los detalles de Tampermonkey y activa <strong>Permitir scripts de usuario</strong>. Si esa opción no aparece, activa el modo de desarrollador de la página de extensiones.</p>
+                <p class="chromium-note" id="chromiumNote" hidden><span id="chromiumPermissionLead">Después, abre los detalles de Tampermonkey y activa</span> <strong id="userScriptsPermissionLabel">Permitir scripts de usuario</strong>. Si esa opción no aparece, activa el modo de desarrollador de la página de extensiones.</p>
             </article>
 
             <article class="setup-card" id="bridgeStep" data-state="pending">
@@ -111,6 +111,6 @@
     </footer>
 
     <script src="js/roll20-bridge.js?v=29"></script>
-    <script src="js/installer.js?v=1"></script>
+    <script src="js/installer.js?v=2"></script>
 </body>
 </html>
