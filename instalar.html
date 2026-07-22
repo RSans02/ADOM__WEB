@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>Instalar ADOM con Roll20</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/installer.css?v=3">
+    <link rel="stylesheet" href="css/installer.css?v=6">
 </head>
 <body>
     <header class="installer-header">
@@ -38,8 +38,10 @@
                     <span class="step-state">Pendiente</span>
                 </div>
                 <h2>Instala Tampermonkey</h2>
-                <p>Es el complemento que permite comunicar de forma segura esta ficha con la pestaña de Roll20.</p>
-                <p class="browser-detection">Navegador detectado: <strong id="browserName">Comprobando…</strong></p>
+                <p class="step-description">Es el complemento que permite comunicar de forma segura esta ficha con la pestaña de Roll20.</p>
+                <div class="setup-preaction">
+                    <p class="browser-detection">Navegador detectado: <strong id="browserName">Comprobando…</strong></p>
+                </div>
                 <a class="action-button primary" id="tampermonkeyLink" href="https://www.tampermonkey.net/" target="_blank" rel="noopener">Instalar Tampermonkey</a>
                 <p class="chromium-note" id="chromiumNote" hidden>Después, abre los detalles de Tampermonkey y activa <strong>Permitir scripts de usuario</strong>. Si esa opción no aparece, activa el modo de desarrollador de la página de extensiones.</p>
             </article>
@@ -50,7 +52,8 @@
                     <span class="step-state">Pendiente</span>
                 </div>
                 <h2>Instala el puente ADOM</h2>
-                <p>Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.</p>
+                <p class="step-description">Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.</p>
+                <div class="setup-preaction" aria-hidden="true"></div>
                 <a class="action-button primary" id="bridgeInstallLink" href="https://adom-web.vercel.app/tampermonkey/adom-roll20-bridge.user.js" target="_blank" rel="noopener">Instalar puente ADOM</a>
                 <button class="action-button secondary" id="bridgeInstalledButton" type="button">Ya lo he instalado</button>
                 <p class="version-line" id="bridgeVersion">Puente no detectado en esta pestaña.</p>
@@ -62,7 +65,8 @@
                     <span class="step-state">Pendiente</span>
                 </div>
                 <h2>Abre tu partida y comprueba</h2>
-                <p>Entra en tu partida de Roll20 usando este mismo navegador y perfil. Deja la pestaña de la partida abierta.</p>
+                <p class="step-description">Entra en tu partida de Roll20 usando este mismo navegador y perfil. Deja la pestaña de la partida abierta.</p>
+                <div class="setup-preaction" aria-hidden="true"></div>
                 <a class="action-button primary" href="https://app.roll20.net/" target="_blank" rel="noopener">Abrir Roll20</a>
                 <button class="action-button secondary" id="checkConnectionButton" type="button">Comprobar conexión</button>
                 <p class="connection-result" id="connectionResult" aria-live="polite">Todavía no se ha comprobado.</p>
@@ -83,8 +87,10 @@
                 <h2>Para el director de juego</h2>
                 <p>Comparte este asistente con cada jugador. Sus personajes se guardan en su propio navegador y puedes enviarles una ficha o campaña mediante JSON.</p>
             </div>
-            <button class="action-button secondary" id="copyGuideLink" type="button">Copiar enlace de instalación</button>
-            <span class="copy-result" id="copyResult" aria-live="polite"></span>
+            <div class="installer-copy-control">
+                <button class="action-button secondary" id="copyGuideLink" type="button">Copiar enlace de instalación</button>
+                <span class="copy-result" id="copyResult" aria-live="polite"></span>
+            </div>
         </section>
 
         <details class="troubleshooting">

@@ -242,6 +242,29 @@ h1 {
     line-height: 1.58;
 }
 
+@media (min-width: 901px) {
+    .step-description {
+        min-height: 70px;
+    }
+
+    .setup-preaction {
+        display: flex;
+        align-items: flex-end;
+        min-height: 64px;
+        margin-bottom: 20px;
+    }
+
+    .setup-preaction .browser-detection {
+        width: 100%;
+        margin: 0;
+    }
+
+    .setup-card > .action-button.primary {
+        margin-top: 0;
+        min-height: 68px;
+    }
+}
+
 .browser-detection,
 .version-line,
 .connection-result {
@@ -254,6 +277,10 @@ h1 {
 .version-line,
 .connection-result {
     margin-top: 14px !important;
+}
+
+.setup-card > :last-child {
+    margin-bottom: 0;
 }
 
 .setup-card[data-state="complete"] .version-line,
@@ -371,13 +398,20 @@ h1 {
 
 .installer-tools .action-button { margin: 0; }
 
+.installer-copy-control {
+    display: grid;
+    justify-items: stretch;
+    gap: 8px;
+}
+
 .copy-result {
-    grid-column: 1 / -1;
-    min-height: 1em;
     color: var(--success);
     font-size: 0.76rem;
-    text-align: right;
+    line-height: 1.35;
+    text-align: center;
 }
+
+.copy-result:empty { display: none; }
 
 .troubleshooting { padding: 0 28px; }
 
@@ -431,5 +465,6 @@ h1 {
     .ready-icon { margin: 0 auto; }
     .installer-tools .action-button,
     .ready-panel .action-button { width: 100%; }
+    .installer-copy-control { width: 100%; }
     .copy-result { text-align: center; }
 }
