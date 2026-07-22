@@ -8,6 +8,7 @@
     ].map(id => [id, document.getElementById(id)]));
 
     const browser = detectBrowser();
+    const latestBridgeVersion = global.ADOM.Roll20.LATEST_BRIDGE_VERSION;
     const bridge = new global.ADOM.Roll20.Roll20Bridge({ timeoutMs: 6500 });
     let bridgeVersion = document.documentElement.dataset.adomBridgeVersion || "";
     let roll20Connected = false;
@@ -81,20 +82,39 @@
         element.querySelector(".step-state").textContent = complete ? "Completado" : "Pendiente";
     }
 
+    function bridgeNeedsUpdate() {
+        return Boolean(bridgeVersion) && compareVersions(bridgeVersion, latestBridgeVersion) < 0;
+    }
+
     function renderProgress() {
         const bridgeInstalled = Boolean(bridgeVersion);
+        const updateRequired = bridgeNeedsUpdate();
         setStepState(elements.extensionStep, bridgeInstalled);
-        setStepState(elements.bridgeStep, bridgeInstalled);
-        setStepState(elements.roll20Step, roll20Connected);
-        elements.bridgeVersion.textContent = bridgeInstalled
-            ? `Puente ADOM ${bridgeVersion} detectado y activo.`
+        setStepState(elements.bridgeStep, bridgeInstalled && !updateRequired);
+        if (updateRequired) {
+            elements.bridgeStep.dataset.state = "update";
+            elements.bridgeStep.querySelector(".step-state").textContent = "Actualizar";
+        }
+        setStepState(elements.roll20Step, roll20Connected && !updateRequired);
+        elements.bridgeVersion.textContent = updateRequired
+            ? `Tienes el puente ADOM ${bridgeVersion}. Hay una versión nueva disponible.`
+            : bridgeInstalled
+                ? `Puente ADOM ${bridgeVersion} detectado y activo.`
             : "Puente no detectado en esta pestaña.";
+        document.getElementById("bridgeInstallLink").textContent = updateRequired ? "Actualizar puente ADOM" : "Instalar puente ADOM";
+        elements.bridgeInstalledButton.textContent = updateRequired ? "Ya lo he actualizado" : "Ya lo he instalado";
 
-        const ready = bridgeInstalled && roll20Connected;
-        elements.overallStatus.dataset.state = ready ? "ready" : "pending";
-        elements.overallStatusTitle.textContent = ready ? "Instalación completada" : "Preparación pendiente";
+        const ready = bridgeInstalled && !updateRequired && roll20Connected;
+        elements.overallStatus.dataset.state = ready ? "ready" : updateRequired ? "update" : "pending";
+        elements.overallStatusTitle.textContent = ready
+            ? "Instalación completada"
+            : updateRequired
+                ? "Actualización disponible"
+                : "Preparación pendiente";
         elements.overallStatusText.textContent = ready
             ? "La ficha y Roll20 pueden comunicarse."
+            : updateRequired
+                ? "Actualiza el puente ADOM para continuar."
             : bridgeInstalled
                 ? "El puente está instalado; falta comprobar Roll20."
                 : "Instala Tampermonkey y el puente ADOM.";
@@ -102,7 +122,7 @@
     }
 
     function startAutomaticConnectionCheck() {
-        if (!bridgeVersion || automaticCheckStarted) return;
+        if (!bridgeVersion || bridgeNeedsUpdate() || automaticCheckStarted) return;
         automaticCheckStarted = true;
         global.setTimeout(() => checkConnection(), 350);
     }
@@ -112,6 +132,11 @@
         if (!bridgeVersion) {
             elements.connectionResult.dataset.state = "error";
             elements.connectionResult.textContent = "Primero instala el puente ADOM y recarga esta página.";
+            return;
+        }
+        if (bridgeNeedsUpdate()) {
+            elements.connectionResult.dataset.state = "error";
+            elements.connectionResult.textContent = "Actualiza primero el puente ADOM y recarga esta página.";
             return;
         }
 
@@ -147,5 +172,16 @@
         } catch (error) {
             global.prompt("Copia este enlace para tus jugadores:", guideUrl);
         }
+    }
+
+    function compareVersions(left, right) {
+        const leftParts = String(left || "").split(".").map(part => Number.parseInt(part, 10) || 0);
+        const rightParts = String(right || "").split(".").map(part => Number.parseInt(part, 10) || 0);
+        const length = Math.max(leftParts.length, rightParts.length);
+        for (let index = 0; index < length; index += 1) {
+            const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
+            if (difference) return difference < 0 ? -1 : 1;
+        }
+        return 0;
     }
 })(window);

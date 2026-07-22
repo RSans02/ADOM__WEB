@@ -138,6 +138,11 @@ h1 {
     box-shadow: 0 0 0 6px rgba(35, 118, 84, 0.1);
 }
 
+.overall-status[data-state="update"] {
+    border-color: rgba(139, 97, 24, 0.28);
+    background: rgba(255, 248, 231, 0.92);
+}
+
 .setup-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -173,6 +178,12 @@ h1 {
 
 .setup-card[data-state="complete"]::before { background: var(--success); }
 
+.setup-card[data-state="update"] {
+    border-color: rgba(139, 97, 24, 0.38);
+}
+
+.setup-card[data-state="update"]::before { background: var(--warning); }
+
 .step-heading {
     display: flex;
     align-items: center;
@@ -202,6 +213,8 @@ h1 {
 
 .setup-card[data-state="complete"] .step-number { background: var(--success); }
 .setup-card[data-state="complete"] .step-state { color: var(--success); background: var(--success-soft); }
+.setup-card[data-state="update"] .step-number { background: var(--warning); }
+.setup-card[data-state="update"] .step-state { color: var(--warning); background: rgba(139, 97, 24, 0.1); }
 
 .setup-card h2,
 .ready-panel h2,
@@ -262,6 +275,11 @@ h1 {
 .connection-result[data-state="success"] {
     color: var(--success);
     background: var(--success-soft);
+}
+
+.setup-card[data-state="update"] .version-line {
+    color: var(--warning);
+    background: rgba(139, 97, 24, 0.08);
 }
 
 .connection-result[data-state="error"] {

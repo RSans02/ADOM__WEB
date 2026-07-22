@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.6.0
+// @version      0.6.1
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -67,6 +67,7 @@
         ROLL20_HOST: "app.roll20.net",
         REQUEST_MAX_AGE_MS: 30_000,
         CHAT_INPUT_TIMEOUT_MS: 10_000,
+        CHAT_TAB_TIMEOUT_MS: 4_000,
         ROLL_RESULT_TIMEOUT_MS: 12_000,
         MAX_PROCESSED_REQUESTS: 500
     });
@@ -108,9 +109,9 @@
             "[ADOM Bridge] Ejecutándose en la ficha externa."
         );
 
-        document.documentElement.dataset.adomBridgeVersion = "0.6.0";
+        document.documentElement.dataset.adomBridgeVersion = "0.6.1";
         window.dispatchEvent(new CustomEvent("adom-sheet:bridge-installed", {
-            detail: { version: "0.6.0" }
+            detail: { version: "0.6.1" }
         }));
 
         window.addEventListener(
@@ -547,10 +548,7 @@
      */
 
     async function sendCommandToRoll20Chat(command, beforeSend = null, speakerName = "") {
-        const chatInput = await waitForElement(
-            findRoll20ChatInput,
-            CONFIG.CHAT_INPUT_TIMEOUT_MS
-        );
+        const chatInput = await findOrOpenRoll20ChatInput();
 
         if (!chatInput) {
             throw new Error(
@@ -560,7 +558,8 @@
 
         const speakerSelection = selectRoll20Speaker(speakerName);
 
-        chatInput.focus();
+        chatInput.click();
+        chatInput.focus({ preventScroll: true });
 
         setNativeInputValue(
             chatInput,
@@ -571,6 +570,46 @@
         beforeSend?.();
         dispatchEnterKeyEvents(chatInput);
         return speakerSelection;
+    }
+
+    async function findOrOpenRoll20ChatInput() {
+        const visibleInput = findRoll20ChatInput();
+        if (visibleInput) return visibleInput;
+
+        const chatTab = findRoll20ChatTabControl();
+        if (chatTab) {
+            chatTab.click();
+            const openedInput = await waitForElement(
+                findRoll20ChatInput,
+                CONFIG.CHAT_TAB_TIMEOUT_MS
+            );
+            if (openedInput) return openedInput;
+        }
+
+        return waitForElement(
+            findRoll20ChatInput,
+            CONFIG.CHAT_INPUT_TIMEOUT_MS
+        );
+    }
+
+    function findRoll20ChatTabControl() {
+        const selectors = [
+            "#textchatbutton",
+            "#rightsidebar-tabs a[href='#textchat']",
+            "a[href='#textchat']",
+            "[aria-controls='textchat']",
+            "[data-tab='textchat']",
+            "[data-tab='chat']",
+            "[role='tab'][aria-label*='chat' i]",
+            "button[aria-label*='chat' i]"
+        ];
+
+        for (const selector of selectors) {
+            const control = Array.from(document.querySelectorAll(selector)).find(isVisible);
+            if (control instanceof HTMLElement) return control;
+        }
+
+        return null;
     }
 
     function selectRoll20Speaker(speakerName) {
@@ -1031,7 +1070,8 @@
                 document.documentElement,
                 {
                     childList: true,
-                    subtree: true
+                    subtree: true,
+                    attributes: true
                 }
             );
 

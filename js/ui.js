@@ -1702,11 +1702,28 @@
         }
 
         renderBridgeStatus(detail) {
-            const state = detail.state === "connected" ? "connected" : detail.state === "error" ? "error" : "unknown";
+            const state = detail.state === "connected"
+                ? "connected"
+                : detail.state === "error"
+                    ? "error"
+                    : detail.state === "update-required"
+                        ? "update"
+                        : "unknown";
             this.elements.connectionStatus.dataset.state = state;
-            this.elements.connectionStatus.textContent = state === "connected" ? "Conectado" : state === "error" ? "Sin respuesta" : "Enviando…";
+            this.elements.connectionStatus.textContent = state === "connected"
+                ? "Conectado"
+                : state === "error"
+                    ? "Sin respuesta"
+                    : state === "update"
+                        ? "Actualización disponible"
+                        : "Enviando…";
             this.elements.roll20SetupLink.classList.toggle("is-attention", state === "error");
-            this.elements.roll20SetupLink.textContent = state === "error" ? "Instalar o reparar" : "Configurar";
+            this.elements.roll20SetupLink.classList.toggle("is-update", state === "update");
+            this.elements.roll20SetupLink.textContent = state === "error"
+                ? "Instalar o reparar"
+                : state === "update"
+                    ? "Actualizar puente"
+                    : "Configurar";
             this.elements.bridgeMessage.textContent = detail.message;
         }
 

@@ -1545,6 +1545,12 @@ input[type="checkbox"] {
     background: var(--danger);
 }
 
+.roll20-setup-button.is-update {
+    color: #fff;
+    border-color: var(--warning);
+    background: var(--warning);
+}
+
 .roll20-chat {
     display: grid;
     align-content: start;
@@ -2262,6 +2268,11 @@ input[type="checkbox"] {
 
 .reset-confirm-dialog strong {
     color: var(--danger);
+}
+
+.connection-pill[data-state="update"] {
+    color: var(--warning);
+    background: rgba(139, 97, 24, 0.11);
 }
 
 .reset-danger-message {

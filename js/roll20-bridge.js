@@ -2,6 +2,7 @@
     "use strict";
 
     const ADOM = global.ADOM = global.ADOM || {};
+    const LATEST_BRIDGE_VERSION = "0.6.1";
 
     const EVENTS = Object.freeze({
         REQUEST: "adom-sheet:bridge-request",
@@ -28,8 +29,33 @@
             this.protocolVersion = 3;
             this.timeoutMs = options?.timeoutMs || 8000;
             this.pending = new Map();
+            this.installedBridgeVersion = "";
+            this.updateRequired = false;
             global.addEventListener(EVENTS.RESPONSE, event => this.handleResponse(event));
             global.addEventListener(EVENTS.CHAT_UPDATE, event => this.handleChatUpdate(event));
+            global.addEventListener("adom-sheet:bridge-installed", event => this.handleBridgeInstalled(event.detail));
+            global.setTimeout(() => this.handleBridgeInstalled({
+                version: document.documentElement.dataset.adomBridgeVersion || ""
+            }), 0);
+        }
+
+        handleBridgeInstalled(detail) {
+            const version = String(detail?.version || "").trim();
+            if (!version) return;
+            this.installedBridgeVersion = version;
+            this.updateRequired = compareVersions(version, LATEST_BRIDGE_VERSION) < 0;
+            if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+        }
+
+        dispatchUpdateRequiredStatus() {
+            this.dispatchEvent(new CustomEvent("status", {
+                detail: {
+                    state: "update-required",
+                    message: `Hay una actualización del puente disponible (${LATEST_BRIDGE_VERSION}).`,
+                    installedVersion: this.installedBridgeVersion,
+                    latestVersion: LATEST_BRIDGE_VERSION
+                }
+            }));
         }
 
         sendChatCommand(command, speakerName = "") {
@@ -88,7 +114,8 @@
             });
 
             global.dispatchEvent(new CustomEvent(EVENTS.REQUEST, { detail: message }));
-            this.dispatchEvent(new CustomEvent("status", { detail: { state: "sending", message: statusMessage } }));
+            if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+            else this.dispatchEvent(new CustomEvent("status", { detail: { state: "sending", message: statusMessage } }));
             return promise;
         }
 
@@ -111,7 +138,8 @@
                 if (speaker?.requested && !speaker.matched) {
                     this.dispatchEvent(new CustomEvent("speaker-missing", { detail: speaker }));
                 }
-                this.dispatchEvent(new CustomEvent("status", {
+                if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+                else this.dispatchEvent(new CustomEvent("status", {
                     detail: { state: "connected", message: response.message || "Comando enviado al chat de Roll20." }
                 }));
                 pending.resolve(response);
@@ -134,15 +162,28 @@
             const messages = event.detail?.messages;
             if (!Array.isArray(messages)) return;
             this.dispatchEvent(new CustomEvent("chat", { detail: { messages } }));
-            this.dispatchEvent(new CustomEvent("status", {
+            if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+            else this.dispatchEvent(new CustomEvent("status", {
                 detail: { state: "connected", message: "Chat sincronizado con Roll20." }
             }));
         }
     }
 
+    function compareVersions(left, right) {
+        const leftParts = String(left || "").split(".").map(part => Number.parseInt(part, 10) || 0);
+        const rightParts = String(right || "").split(".").map(part => Number.parseInt(part, 10) || 0);
+        const length = Math.max(leftParts.length, rightParts.length);
+        for (let index = 0; index < length; index += 1) {
+            const difference = (leftParts[index] || 0) - (rightParts[index] || 0);
+            if (difference) return difference < 0 ? -1 : 1;
+        }
+        return 0;
+    }
+
     ADOM.Roll20 = Object.freeze({
         EVENTS,
         MESSAGE_TYPES,
+        LATEST_BRIDGE_VERSION,
         Roll20Bridge
     });
 })(window);
