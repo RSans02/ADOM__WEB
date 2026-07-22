@@ -199,6 +199,35 @@ input[type="checkbox"] {
     backdrop-filter: blur(3px);
 }
 
+.destructive-confirm-dialog {
+    width: min(460px, calc(100vw - 28px));
+    max-width: none;
+    padding: 0;
+    overflow: visible;
+    border: 0;
+    border-radius: 18px;
+    background: transparent;
+    box-shadow: 0 28px 80px rgba(44, 37, 48, 0.32);
+}
+
+.destructive-confirm-dialog::backdrop {
+    background: rgba(44, 37, 48, 0.58);
+    backdrop-filter: blur(4px);
+}
+
+.destructive-confirm-dialog .reset-confirm-dialog {
+    width: 100%;
+}
+
+.simple-modal-dialog .reset-confirm-dialog p {
+    margin-bottom: 14px;
+}
+
+.simple-modal-dialog .simple-modal-input[readonly] {
+    cursor: text;
+    background: rgba(var(--accent-rgb), 0.05);
+}
+
 .character-library-dialog[open] {
     display: grid;
     grid-template-rows: auto auto minmax(260px, 1fr) auto;
@@ -449,6 +478,7 @@ input[type="checkbox"] {
 .options-menu-panel .button {
     width: 100%;
     justify-content: flex-start;
+    text-decoration: none;
 }
 
 .options-reset-button {
@@ -1059,6 +1089,14 @@ input[type="checkbox"] {
 .track {
     justify-content: space-evenly;
     gap: 10px;
+}
+
+#dramaTrack {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(28px, 1fr));
+    justify-items: center;
+    gap: 4px;
+    min-width: 0;
 }
 
 .track-check {
@@ -2201,6 +2239,21 @@ input[type="checkbox"] {
 
 .reset-confirm-dialog strong {
     color: var(--danger);
+}
+
+.bridge-setup-link {
+    display: inline-flex;
+    margin-top: 2px;
+    color: var(--accent-strong);
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.4;
+    text-underline-offset: 3px;
+}
+
+.reset-danger-message {
+    color: var(--danger);
+    font-weight: 750;
 }
 
 .reset-confirm-input {

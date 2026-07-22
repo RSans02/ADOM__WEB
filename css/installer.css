@@ -1,0 +1,415 @@
+:root {
+    --accent: #a64d78;
+    --accent-strong: #7e2b55;
+    --accent-soft: #f7eaf0;
+    --ink: #2c2530;
+    --muted: #746b76;
+    --line: #decbd5;
+    --surface: #fffdfd;
+    --success: #237654;
+    --success-soft: #e8f5ef;
+    --danger: #9f3140;
+    --warning: #8b6118;
+    --shadow: 0 18px 50px rgba(72, 31, 51, 0.12);
+}
+
+* { box-sizing: border-box; }
+
+html {
+    min-width: 320px;
+    min-height: 100%;
+    background: #ead5df;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--ink);
+    background:
+        radial-gradient(circle at 8% 0%, rgba(255, 255, 255, 0.88), transparent 30rem),
+        radial-gradient(circle at 100% 28%, rgba(255, 255, 255, 0.48), transparent 38rem),
+        linear-gradient(145deg, #f8edf2, #e4cbd7);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+button, a { font: inherit; }
+
+a { color: inherit; }
+
+.installer-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 74px;
+    padding: 10px clamp(18px, 4vw, 64px);
+    border-bottom: 1px solid rgba(126, 43, 85, 0.12);
+    background: rgba(255, 253, 253, 0.88);
+    box-shadow: 0 8px 30px rgba(72, 31, 51, 0.06);
+    backdrop-filter: blur(14px);
+}
+
+.installer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+}
+
+.installer-brand img {
+    display: block;
+    width: auto;
+    height: 52px;
+    object-fit: contain;
+}
+
+.installer-brand span { display: grid; line-height: 1; }
+.installer-brand small {
+    margin-bottom: 4px;
+    color: var(--muted);
+    font-size: 0.58rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+.installer-brand strong { font-size: 1.35rem; letter-spacing: -0.03em; }
+
+.header-sheet-link {
+    color: var(--accent-strong);
+    font-size: 0.88rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.header-sheet-link:hover { text-decoration: underline; }
+
+.installer-main {
+    width: min(1180px, calc(100% - 32px));
+    margin: 0 auto;
+    padding: clamp(38px, 6vw, 78px) 0 54px;
+}
+
+.installer-hero {
+    display: grid;
+    justify-items: center;
+    max-width: 780px;
+    margin: 0 auto 34px;
+    text-align: center;
+}
+
+.eyebrow {
+    margin: 0 0 8px;
+    color: var(--accent-strong);
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+h1 {
+    margin: 0;
+    font-size: clamp(2rem, 5vw, 4rem);
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+}
+
+.hero-copy {
+    max-width: 680px;
+    margin: 18px 0 24px;
+    color: var(--muted);
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    line-height: 1.65;
+}
+
+.overall-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    min-width: min(100%, 430px);
+    padding: 13px 18px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 8px 24px rgba(72, 31, 51, 0.08);
+    text-align: left;
+}
+
+.overall-status > div {
+    display: grid;
+    gap: 2px;
+}
+
+.overall-status strong { font-size: 0.88rem; }
+.overall-status span:not(.status-light) { color: var(--muted); font-size: 0.76rem; }
+
+.status-light {
+    flex: 0 0 auto;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--warning);
+    box-shadow: 0 0 0 6px rgba(139, 97, 24, 0.1);
+}
+
+.overall-status[data-state="ready"] {
+    border-color: rgba(35, 118, 84, 0.28);
+    background: var(--success-soft);
+}
+
+.overall-status[data-state="ready"] .status-light {
+    background: var(--success);
+    box-shadow: 0 0 0 6px rgba(35, 118, 84, 0.1);
+}
+
+.setup-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.setup-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 380px;
+    padding: 22px;
+    overflow: hidden;
+    border: 1px solid rgba(126, 43, 85, 0.18);
+    border-radius: 20px;
+    background: rgba(255, 253, 253, 0.9);
+    box-shadow: var(--shadow);
+    transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.setup-card::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 5px;
+    background: linear-gradient(90deg, var(--accent), #cf82a7);
+    content: "";
+}
+
+.setup-card[data-state="complete"] {
+    border-color: rgba(35, 118, 84, 0.35);
+    box-shadow: 0 18px 50px rgba(35, 118, 84, 0.09);
+}
+
+.setup-card[data-state="complete"]::before { background: var(--success); }
+
+.step-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.step-number {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 12px;
+    color: #fff;
+    background: var(--accent);
+    font-weight: 900;
+}
+
+.step-state {
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: var(--warning);
+    background: rgba(139, 97, 24, 0.09);
+    font-size: 0.7rem;
+    font-weight: 850;
+}
+
+.setup-card[data-state="complete"] .step-number { background: var(--success); }
+.setup-card[data-state="complete"] .step-state { color: var(--success); background: var(--success-soft); }
+
+.setup-card h2,
+.ready-panel h2,
+.installer-tools h2 {
+    margin: 0 0 9px;
+    font-size: 1.18rem;
+}
+
+.setup-card p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.58;
+}
+
+.browser-detection,
+.version-line,
+.connection-result {
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    font-size: 0.78rem !important;
+}
+
+.setup-card[data-state="complete"] .version-line,
+.connection-result[data-state="success"] {
+    color: var(--success);
+    background: var(--success-soft);
+}
+
+.connection-result[data-state="error"] {
+    color: var(--danger);
+    background: rgba(159, 49, 64, 0.08);
+}
+
+.chromium-note {
+    color: var(--warning) !important;
+    font-size: 0.74rem !important;
+}
+
+.action-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    margin-top: auto;
+    padding: 10px 15px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 850;
+    text-align: center;
+    text-decoration: none;
+    transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.action-button + .action-button { margin-top: 8px; }
+
+.action-button:hover {
+    transform: translateY(-1px);
+}
+
+.action-button:focus-visible {
+    outline: 3px solid rgba(166, 77, 120, 0.22);
+    outline-offset: 2px;
+}
+
+.action-button.primary {
+    color: #fff;
+    background: linear-gradient(105deg, var(--accent), var(--accent-strong));
+    box-shadow: 0 9px 20px rgba(126, 43, 85, 0.2);
+}
+
+.action-button.secondary {
+    color: var(--accent-strong);
+    border-color: rgba(126, 43, 85, 0.22);
+    background: #fff;
+}
+
+.action-button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+}
+
+.ready-panel,
+.installer-tools,
+.troubleshooting {
+    margin-top: 18px;
+    border: 1px solid rgba(126, 43, 85, 0.18);
+    border-radius: 18px;
+    background: rgba(255, 253, 253, 0.88);
+    box-shadow: var(--shadow);
+}
+
+.ready-panel {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-color: rgba(35, 118, 84, 0.35);
+    background: var(--success-soft);
+}
+
+.ready-panel[hidden] { display: none; }
+
+.ready-panel p,
+.installer-tools p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+.ready-icon {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 50%;
+    color: #fff;
+    background: var(--success);
+    font-size: 1.4rem;
+    font-weight: 900;
+}
+
+.ready-panel .action-button { margin: 0; }
+
+.installer-tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    padding: 22px;
+}
+
+.installer-tools .action-button { margin: 0; }
+
+.copy-result {
+    grid-column: 1 / -1;
+    min-height: 1em;
+    color: var(--success);
+    font-size: 0.76rem;
+    text-align: right;
+}
+
+.troubleshooting { padding: 0 20px; }
+
+.troubleshooting summary {
+    padding: 18px 0;
+    color: var(--accent-strong);
+    cursor: pointer;
+    font-weight: 850;
+}
+
+.troubleshooting ol {
+    margin: 0 0 20px;
+    padding-left: 22px;
+    color: var(--muted);
+    line-height: 1.7;
+}
+
+.installer-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 24px clamp(18px, 4vw, 64px);
+    color: var(--muted);
+    font-size: 0.78rem;
+}
+
+.installer-footer a { color: var(--accent-strong); font-weight: 800; }
+
+@media (max-width: 900px) {
+    .setup-grid { grid-template-columns: 1fr; }
+    .setup-card { min-height: 0; }
+    .action-button { margin-top: 8px; }
+}
+
+@media (max-width: 640px) {
+    .installer-header { min-height: 62px; }
+    .installer-brand img { height: 42px; }
+    .installer-main { width: min(100% - 22px, 1180px); padding-top: 34px; }
+    .ready-panel,
+    .installer-tools { grid-template-columns: 1fr; text-align: center; }
+    .ready-icon { margin: 0 auto; }
+    .installer-tools .action-button,
+    .ready-panel .action-button { width: 100%; }
+    .copy-result { text-align: center; }
+}

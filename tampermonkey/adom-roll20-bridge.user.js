@@ -1,8 +1,12 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.4.4
+// @version      0.6.0
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
+// @homepageURL  https://adom-web.vercel.app/
+// @supportURL   https://adom-web.vercel.app/instalar.html
+// @downloadURL  https://adom-web.vercel.app/tampermonkey/adom-roll20-bridge.user.js
+// @updateURL    https://adom-web.vercel.app/tampermonkey/adom-roll20-bridge.user.js
 //
 // Ficha externa local:
 // @match        https://adom-web.vercel.app/*
@@ -43,6 +47,7 @@
         }),
 
         MESSAGE_TYPES: Object.freeze({
+            PING: "PING",
             CHAT_COMMAND: "CHAT_COMMAND",
             DAMAGE_ROLL: "DAMAGE_ROLL"
         }),
@@ -102,6 +107,11 @@
         console.info(
             "[ADOM Bridge] Ejecutándose en la ficha externa."
         );
+
+        document.documentElement.dataset.adomBridgeVersion = "0.6.0";
+        window.dispatchEvent(new CustomEvent("adom-sheet:bridge-installed", {
+            detail: { version: "0.6.0" }
+        }));
 
         window.addEventListener(
             PROTOCOL.EVENTS.PAGE_REQUEST,
@@ -238,8 +248,9 @@
         let nodes = Array.from(document.querySelectorAll("#textchat .message"));
         if (!nodes.length) nodes = Array.from(document.querySelectorAll("#textchat .content > div"));
         return nodes.slice(-80).map((node, index) => {
-            const speakerNode = findSpeakerNode(node);
-            const speaker = findRoll20Speaker(node, speakerNode);
+            const systemMessage = isRoll20SystemMessage(node);
+            const speakerNode = systemMessage ? null : findSpeakerNode(node);
+            const speaker = systemMessage ? "Roll20" : findRoll20Speaker(node, speakerNode);
             let text = String(node.innerText || node.textContent || "").trim();
             if (speakerNode) {
                 const speakerText = String(speakerNode.textContent || "").trim();
@@ -254,6 +265,15 @@
                 roll
             };
         }).filter(message => message.text);
+    }
+
+    function isRoll20SystemMessage(node) {
+        const systemClasses = ["system", "systemmessage", "notification", "server", "error", "warning", "info"];
+        const hasSystemClass = systemClasses.some(className => node.classList.contains(className));
+        const messageType = String(node.dataset?.messageType || node.dataset?.type || "").toLowerCase();
+        return hasSystemClass
+            || ["system", "notification", "server", "error", "warning", "info"].includes(messageType)
+            || Boolean(node.querySelector(".systemmessage, .system-message, [data-message-type='system']"));
     }
 
     function findSpeakerNode(node) {
@@ -413,6 +433,13 @@
 
     async function dispatchMessage(message) {
         switch (message.type) {
+            case PROTOCOL.MESSAGE_TYPES.PING:
+                return createSuccessResponse({
+                    requestId: message.id,
+                    message: "Conexión con Roll20 verificada.",
+                    data: { connected: true }
+                });
+
             case PROTOCOL.MESSAGE_TYPES.CHAT_COMMAND:
                 return handleChatCommand(message);
 
@@ -448,16 +475,20 @@
             });
         }
 
-        await sendCommandToRoll20Chat(
-            command.trim()
-        );
+        const speakerName = normalizeRollLabel(message.payload?.speakerName, "");
+        const speakerSelection = await sendCommandToRoll20Chat(command.trim(), null, speakerName);
 
         return createSuccessResponse({
             requestId: message.id,
             data: {
-                command: command.trim()
+                command: command.trim(),
+                speaker: speakerSelection
             },
-            message: "Comando enviado al chat de Roll20."
+            message: speakerSelection.matched
+                ? `Comando enviado como ${speakerSelection.name}.`
+                : speakerName
+                    ? `No se encontró «${speakerName}» en Roll20. Crea allí un personaje con el mismo nombre y permiso de control.`
+                    : "Comando enviado al chat de Roll20."
         });
     }
 
@@ -471,6 +502,7 @@
         const skillValue = normalizeModifier(message.payload?.skillValue);
         const attributeValue = normalizeModifier(message.payload?.attributeValue);
         const weaponName = normalizeRollLabel(message.payload?.weaponName, "Arma");
+        const speakerName = normalizeRollLabel(message.payload?.speakerName, "");
 
         if (skillValue === null || attributeValue === null) {
             return createErrorResponse({
@@ -482,17 +514,20 @@
 
         const command = `/roll {3d10dh1}kh1${formatRollModifier(skillValue, "Habilidad")}${formatRollModifier(attributeValue, "Atributo")}${formatRollModifier(0, `Arma: ${weaponName}`)}`;
         let rollWaiter = null;
+        let speakerSelection = { requested: Boolean(speakerName), matched: false, name: speakerName };
 
         try {
-            await sendCommandToRoll20Chat(command, () => {
+            speakerSelection = await sendCommandToRoll20Chat(command, () => {
                 rollWaiter = createRollResultWaiter();
-            });
+            }, speakerName);
             const dice = await rollWaiter.promise;
 
             return createSuccessResponse({
                 requestId: message.id,
-                data: { dice },
-                message: "Tirada recibida desde Roll20."
+                data: { dice, speaker: speakerSelection },
+                message: speakerSelection.matched || !speakerSelection.requested
+                    ? "Tirada recibida desde Roll20."
+                    : `Tirada recibida, pero no se encontró «${speakerName}». Crea el personaje en Roll20 con el mismo nombre.`
             });
         } finally {
             rollWaiter?.cancel();
@@ -511,7 +546,7 @@
      * estas funciones sin tocar el protocolo ni la ficha externa.
      */
 
-    async function sendCommandToRoll20Chat(command, beforeSend = null) {
+    async function sendCommandToRoll20Chat(command, beforeSend = null, speakerName = "") {
         const chatInput = await waitForElement(
             findRoll20ChatInput,
             CONFIG.CHAT_INPUT_TIMEOUT_MS
@@ -523,6 +558,8 @@
             );
         }
 
+        const speakerSelection = selectRoll20Speaker(speakerName);
+
         chatInput.focus();
 
         setNativeInputValue(
@@ -533,6 +570,47 @@
         dispatchInputEvents(chatInput);
         beforeSend?.();
         dispatchEnterKeyEvents(chatInput);
+        return speakerSelection;
+    }
+
+    function selectRoll20Speaker(speakerName) {
+        const requestedName = String(speakerName || "").trim();
+        if (!requestedName) return { requested: false, matched: false, name: "" };
+
+        const selector = document.querySelector("#speakingas, select[name='speakingas'], #textchat-input select");
+        if (!(selector instanceof HTMLSelectElement)) {
+            return { requested: true, matched: false, name: requestedName };
+        }
+
+        const target = normalizeSpeakerComparison(requestedName);
+        const candidates = Array.from(selector.options).map(option => ({
+            option,
+            name: String(option.textContent || "").replace(/^\s*(?:como|as)\s*:?\s*/i, "").trim()
+        }));
+        let match = candidates.find(candidate => normalizeSpeakerComparison(candidate.name) === target);
+        if (!match) {
+            const partialMatches = candidates.filter(candidate => {
+                const candidateName = normalizeSpeakerComparison(candidate.name).replace(/\s*\([^)]*\)\s*$/, "");
+                return candidateName === target;
+            });
+            if (partialMatches.length === 1) match = partialMatches[0];
+        }
+        if (!match) return { requested: true, matched: false, name: requestedName };
+
+        const descriptor = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
+        if (descriptor?.set) descriptor.set.call(selector, match.option.value);
+        else selector.value = match.option.value;
+        dispatchInputEvents(selector);
+        return { requested: true, matched: selector.value === match.option.value, name: match.name };
+    }
+
+    function normalizeSpeakerComparison(value) {
+        return String(value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
     }
 
     function findRoll20ChatInput() {

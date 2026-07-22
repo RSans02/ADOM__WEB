@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title>Instalar ADOM con Roll20</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="stylesheet" href="css/installer.css?v=1">
+</head>
+<body>
+    <header class="installer-header">
+        <a class="installer-brand" href="index.html" aria-label="Volver a la ficha ADOM">
+            <img src="logo.png" alt="ADOM">
+            <span><small>Ficha externa</small><strong>ADOM</strong></span>
+        </a>
+        <a class="header-sheet-link" href="index.html">Abrir la ficha</a>
+    </header>
+
+    <main class="installer-main">
+        <section class="installer-hero">
+            <p class="eyebrow">Asistente para jugadores</p>
+            <h1>Conecta ADOM con Roll20</h1>
+            <p class="hero-copy">La ficha no necesita instalarse. Solo hay que preparar el navegador una vez para enviar tiradas y ver el chat de Roll20.</p>
+            <div class="overall-status" id="overallStatus" data-state="pending" role="status" aria-live="polite">
+                <span class="status-light" aria-hidden="true"></span>
+                <div>
+                    <strong id="overallStatusTitle">Preparación pendiente</strong>
+                    <span id="overallStatusText">Completa los tres pasos siguientes.</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="setup-grid" aria-label="Pasos de instalación">
+            <article class="setup-card" id="extensionStep" data-state="pending">
+                <div class="step-heading">
+                    <span class="step-number">1</span>
+                    <span class="step-state">Pendiente</span>
+                </div>
+                <h2>Instala Tampermonkey</h2>
+                <p>Es el complemento que permite comunicar de forma segura esta ficha con la pestaña de Roll20.</p>
+                <p class="browser-detection">Navegador detectado: <strong id="browserName">Comprobando…</strong></p>
+                <a class="action-button primary" id="tampermonkeyLink" href="https://www.tampermonkey.net/" target="_blank" rel="noopener">Instalar Tampermonkey</a>
+                <p class="chromium-note" id="chromiumNote" hidden>Después, abre los detalles de Tampermonkey y activa <strong>Permitir scripts de usuario</strong>. Si esa opción no aparece, activa el modo de desarrollador de la página de extensiones.</p>
+            </article>
+
+            <article class="setup-card" id="bridgeStep" data-state="pending">
+                <div class="step-heading">
+                    <span class="step-number">2</span>
+                    <span class="step-state">Pendiente</span>
+                </div>
+                <h2>Instala el puente ADOM</h2>
+                <p>Se abrirá Tampermonkey. Pulsa <strong>Instalar</strong>; no necesitas copiar ni configurar ningún código.</p>
+                <a class="action-button primary" id="bridgeInstallLink" href="https://adom-web.vercel.app/tampermonkey/adom-roll20-bridge.user.js" target="_blank" rel="noopener">Instalar puente ADOM</a>
+                <button class="action-button secondary" id="bridgeInstalledButton" type="button">Ya lo he instalado</button>
+                <p class="version-line" id="bridgeVersion">Puente no detectado en esta pestaña.</p>
+            </article>
+
+            <article class="setup-card" id="roll20Step" data-state="pending">
+                <div class="step-heading">
+                    <span class="step-number">3</span>
+                    <span class="step-state">Pendiente</span>
+                </div>
+                <h2>Abre tu partida y comprueba</h2>
+                <p>Entra en tu partida de Roll20 usando este mismo navegador y perfil. Deja la pestaña de la partida abierta.</p>
+                <a class="action-button primary" href="https://app.roll20.net/" target="_blank" rel="noopener">Abrir Roll20</a>
+                <button class="action-button secondary" id="checkConnectionButton" type="button">Comprobar conexión</button>
+                <p class="connection-result" id="connectionResult" aria-live="polite">Todavía no se ha comprobado.</p>
+            </article>
+        </section>
+
+        <section class="ready-panel" id="readyPanel" hidden>
+            <div class="ready-icon" aria-hidden="true">✓</div>
+            <div>
+                <h2>Todo listo para jugar</h2>
+                <p>Ya puedes abrir la ficha. Mantén Roll20 abierto en otra pestaña mientras juegas.</p>
+            </div>
+            <a class="action-button primary" href="index.html">Abrir mi ficha ADOM</a>
+        </section>
+
+        <section class="installer-tools">
+            <div>
+                <h2>Para el director de juego</h2>
+                <p>Comparte este asistente con cada jugador. Sus personajes se guardan en su propio navegador y puedes enviarles una ficha o campaña mediante JSON.</p>
+            </div>
+            <button class="action-button secondary" id="copyGuideLink" type="button">Copiar enlace de instalación</button>
+            <span class="copy-result" id="copyResult" aria-live="polite"></span>
+        </section>
+
+        <details class="troubleshooting">
+            <summary>La comprobación no conecta</summary>
+            <ol>
+                <li>Comprueba que has entrado dentro de una partida, no solo en la portada de Roll20.</li>
+                <li>Confirma que Tampermonkey y <strong>ADOM External Sheet - Roll20 Bridge</strong> están activados.</li>
+                <li>Usa el mismo navegador y el mismo perfil para la ficha y Roll20.</li>
+                <li>Recarga tanto esta página como la pestaña de Roll20 después de instalar el puente.</li>
+                <li>En Chrome o Edge, revisa que Tampermonkey tenga permiso para ejecutar scripts de usuario.</li>
+            </ol>
+        </details>
+    </main>
+
+    <footer class="installer-footer">
+        <span>ADOM · Asistente de conexión</span>
+        <a href="index.html">Volver a la ficha</a>
+    </footer>
+
+    <script src="js/roll20-bridge.js?v=29"></script>
+    <script src="js/installer.js?v=1"></script>
+</body>
+</html>

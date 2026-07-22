@@ -466,7 +466,7 @@
             return {
                 id,
                 name: String(name || "Mi campaña").trim() || "Mi campaña",
-                folders: ["Jugadores", "NPCs", "Enemigos"].map(folderName => ({
+                folders: ["Personajes"].map(folderName => ({
                     id: this.createEntityId("folder"),
                     name: folderName
                 }))
@@ -501,7 +501,8 @@
             });
             if (!characters.length) return null;
             const campaignIds = new Set();
-            const campaigns = (Array.isArray(candidate.campaigns) ? candidate.campaigns : []).map(item => {
+            const suppliedCampaigns = Array.isArray(candidate.campaigns) && candidate.campaigns.length > 0;
+            const campaigns = (suppliedCampaigns ? candidate.campaigns : []).map(item => {
                 let id = String(item?.id || "").trim();
                 if (!id || campaignIds.has(id)) id = this.createEntityId("campaign");
                 campaignIds.add(id);
@@ -512,7 +513,6 @@
                     folderIds.add(folderId);
                     return { id: folderId, name: String(folder?.name || "Carpeta").trim() || "Carpeta" };
                 });
-                if (!folders.length) folders.push({ id: this.createEntityId("folder"), name: "Jugadores" });
                 return { id, name: String(item?.name || "Campaña").trim() || "Campaña", folders };
             });
             if (!campaigns.length) campaigns.push(this.createCampaignRecord());
@@ -521,7 +521,9 @@
             characters.forEach(entry => {
                 const campaign = campaigns.find(item => item.id === entry.campaignId) || fallbackCampaign;
                 entry.campaignId = campaign.id;
-                if (!campaign.folders.some(folder => folder.id === entry.folderId)) entry.folderId = campaign.folders[0].id;
+                if (!campaign.folders.some(folder => folder.id === entry.folderId)) {
+                    entry.folderId = suppliedCampaigns ? "" : (campaign.folders[0]?.id || "");
+                }
             });
 
             let activeCampaignId = String(candidate.activeCampaignId || "");
@@ -531,7 +533,7 @@
                 characters.push({
                     id: this.createCharacterId(),
                     campaignId: campaign.id,
-                    folderId: campaign.folders[0].id,
+                    folderId: campaign.folders[0]?.id || "",
                     state: createEmptyState()
                 });
             }
@@ -630,7 +632,7 @@
                 || this.collection.campaigns[0];
             const folderId = campaign.folders.some(folder => folder.id === options?.folderId)
                 ? options.folderId
-                : campaign.folders[0].id;
+                : "";
             const entry = { id: this.createCharacterId(), campaignId: campaign.id, folderId, state: createEmptyState() };
             this.collection.characters.push(entry);
             this.collection.activeCampaignId = campaign.id;
@@ -644,8 +646,24 @@
         deleteCharacter(id) {
             const target = this.collection.characters.find(entry => entry.id === id);
             if (!target) return false;
-            if (this.collection.characters.filter(entry => entry.campaignId === target.campaignId).length <= 1) return false;
             const index = this.collection.characters.findIndex(entry => entry.id === id);
+            const campaignCharacters = this.collection.characters.filter(entry => entry.campaignId === target.campaignId);
+            if (campaignCharacters.length <= 1) {
+                const replacement = {
+                    id: this.createCharacterId(),
+                    campaignId: target.campaignId,
+                    folderId: target.folderId,
+                    state: createEmptyState()
+                };
+                this.collection.characters.splice(index, 1, replacement);
+                if (this.collection.activeCharacterId === id) {
+                    this.collection.activeCharacterId = replacement.id;
+                    this.state = replacement.state;
+                }
+                this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-delete-placeholder" } }));
+                this.scheduleSave();
+                return true;
+            }
             this.collection.characters.splice(index, 1);
             if (this.collection.activeCharacterId === id) {
                 const nextEntry = this.collection.characters.find(entry => entry.campaignId === target.campaignId)
@@ -677,9 +695,26 @@
         }
 
         deleteCampaign(id) {
-            if (this.collection.campaigns.length <= 1) return false;
             const index = this.collection.campaigns.findIndex(campaign => campaign.id === id);
             if (index < 0) return false;
+            if (this.collection.campaigns.length <= 1) {
+                const replacementCampaign = this.createCampaignRecord("Mi campaña");
+                replacementCampaign.folders = [];
+                const replacementCharacter = {
+                    id: this.createCharacterId(),
+                    campaignId: replacementCampaign.id,
+                    folderId: "",
+                    state: createEmptyState()
+                };
+                this.collection.campaigns = [replacementCampaign];
+                this.collection.characters = [replacementCharacter];
+                this.collection.activeCampaignId = replacementCampaign.id;
+                this.collection.activeCharacterId = replacementCharacter.id;
+                this.state = replacementCharacter.state;
+                this.dispatchEvent(new CustomEvent("change", { detail: { source: "campaign-delete-placeholder" } }));
+                this.scheduleSave();
+                return true;
+            }
             const removedCharacterIds = new Set(this.collection.characters.filter(entry => entry.campaignId === id).map(entry => entry.id));
             this.collection.campaigns.splice(index, 1);
             this.collection.characters = this.collection.characters.filter(entry => entry.campaignId !== id);
@@ -718,13 +753,13 @@
 
         deleteFolder(campaignId, folderId) {
             const campaign = this.collection.campaigns.find(item => item.id === campaignId);
-            if (!campaign || campaign.folders.length <= 1) return false;
+            if (!campaign) return false;
             const index = campaign.folders.findIndex(folder => folder.id === folderId);
             if (index < 0) return false;
             campaign.folders.splice(index, 1);
-            const fallbackFolder = campaign.folders[Math.min(index, campaign.folders.length - 1)];
+            const fallbackFolder = campaign.folders[Math.min(index, campaign.folders.length - 1)] || null;
             this.collection.characters.forEach(entry => {
-                if (entry.campaignId === campaignId && entry.folderId === folderId) entry.folderId = fallbackFolder.id;
+                if (entry.campaignId === campaignId && entry.folderId === folderId) entry.folderId = fallbackFolder?.id || "";
             });
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "folder-delete" } }));
             this.scheduleSave();
@@ -734,7 +769,7 @@
         moveCharacter(characterId, folderId) {
             const entry = this.collection.characters.find(item => item.id === characterId);
             const campaign = entry && this.collection.campaigns.find(item => item.id === entry.campaignId);
-            if (!entry || !campaign?.folders.some(folder => folder.id === folderId)) return false;
+            if (!entry || !campaign || (folderId && !campaign.folders.some(folder => folder.id === folderId))) return false;
             entry.folderId = folderId;
             this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-move" } }));
             this.scheduleSave();
@@ -779,6 +814,13 @@
             this.save();
         }
 
+        resetAll() {
+            this.collection = this.createCollection(createEmptyState());
+            this.state = this.getActiveEntry().state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "reset-all" } }));
+            this.save();
+        }
+
         exportJson() {
             return JSON.stringify(this.state, null, 2);
         }
@@ -786,6 +828,100 @@
         importJson(text) {
             const parsed = JSON.parse(text);
             this.replace(parsed, { source: "import" });
+        }
+
+        importCharacterJson(text) {
+            const parsed = JSON.parse(text);
+            if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+                throw new Error("El archivo no contiene un personaje válido.");
+            }
+            if (parsed.format === "adom-campaign") {
+                throw new Error("Este archivo contiene una campaña. Usa Importar campaña.");
+            }
+            const state = normalizeState(parsed.format === "adom-character" ? parsed.character : parsed);
+            const campaign = this.collection.campaigns.find(item => item.id === this.collection.activeCampaignId)
+                || this.collection.campaigns[0];
+            const activeEntry = this.getActiveEntry();
+            const folderId = activeEntry?.campaignId === campaign.id
+                && campaign.folders.some(folder => folder.id === activeEntry.folderId)
+                ? activeEntry.folderId
+                : "";
+            const entry = {
+                id: this.createCharacterId(),
+                campaignId: campaign.id,
+                folderId,
+                state
+            };
+            this.collection.characters.push(entry);
+            this.collection.activeCampaignId = campaign.id;
+            this.collection.activeCharacterId = entry.id;
+            this.state = entry.state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "character-import" } }));
+            this.scheduleSave();
+            return entry.id;
+        }
+
+        exportCampaignJson(campaignId = this.collection.activeCampaignId) {
+            const campaign = this.collection.campaigns.find(item => item.id === campaignId);
+            if (!campaign) throw new Error("No se encontró la campaña activa.");
+            const payload = {
+                format: "adom-campaign",
+                version: 1,
+                campaign: {
+                    name: campaign.name,
+                    folders: campaign.folders.map(folder => ({ id: folder.id, name: folder.name }))
+                },
+                characters: this.collection.characters
+                    .filter(entry => entry.campaignId === campaign.id)
+                    .map(entry => ({ folderId: entry.folderId, state: entry.state }))
+            };
+            return JSON.stringify(payload, null, 2);
+        }
+
+        importCampaignJson(text) {
+            const parsed = JSON.parse(text);
+            if (parsed?.format !== "adom-campaign" || !parsed.campaign || !Array.isArray(parsed.characters)) {
+                throw new Error("El archivo no contiene una campaña ADOM válida.");
+            }
+
+            const campaignId = this.createEntityId("campaign");
+            const folderIdMap = new Map();
+            const folders = [];
+            (Array.isArray(parsed.campaign.folders) ? parsed.campaign.folders : []).forEach(folder => {
+                const sourceId = String(folder?.id || "");
+                const name = String(folder?.name || "Carpeta").trim() || "Carpeta";
+                const id = this.createEntityId("folder");
+                if (sourceId && !folderIdMap.has(sourceId)) folderIdMap.set(sourceId, id);
+                folders.push({ id, name });
+            });
+            const campaign = {
+                id: campaignId,
+                name: String(parsed.campaign.name || "Campaña importada").trim() || "Campaña importada",
+                folders
+            };
+            const characters = parsed.characters.map(item => ({
+                id: this.createCharacterId(),
+                campaignId,
+                folderId: folderIdMap.get(String(item?.folderId || "")) || "",
+                state: normalizeState(item?.state)
+            }));
+            if (!characters.length) {
+                characters.push({
+                    id: this.createCharacterId(),
+                    campaignId,
+                    folderId: "",
+                    state: createEmptyState()
+                });
+            }
+
+            this.collection.campaigns.push(campaign);
+            this.collection.characters.push(...characters);
+            this.collection.activeCampaignId = campaignId;
+            this.collection.activeCharacterId = characters[0].id;
+            this.state = characters[0].state;
+            this.dispatchEvent(new CustomEvent("change", { detail: { source: "campaign-import" } }));
+            this.scheduleSave();
+            return campaignId;
         }
     }
 

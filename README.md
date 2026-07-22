@@ -2,17 +2,21 @@
 
 Primera versión funcional basada en la ficha Excel proporcionada.
 
-## Abrir la ficha
+## Instalación para jugadores
 
-Abre `index.html` con el mismo navegador y perfil en el que tienes Tampermonkey y Roll20.
-
-La ruta prevista es:
+La ficha publicada no requiere descarga. Cada jugador debe abrir el asistente:
 
 ```text
-file:///C:/ADOM__WEB/index.html
+https://adom-web.vercel.app/instalar.html
 ```
 
-Puedes copiar todo el contenido de esta carpeta dentro de `C:\ADOM__WEB`.
+El asistente detecta el navegador, enlaza a la instalación oficial de Tampermonkey, instala el puente ADOM con un clic y comprueba la conexión real con una partida de Roll20 sin escribir mensajes en el chat.
+
+La ficha y Roll20 deben abrirse con el mismo navegador y perfil. En Chrome y otros navegadores Chromium recientes puede ser necesario activar `Permitir scripts de usuario` en los detalles de Tampermonkey o habilitar el modo de desarrollador de la página de extensiones.
+
+Desde la propia ficha se puede volver al asistente mediante `Opciones → Configurar Roll20` o desde el enlace del panel de chat.
+
+Para desarrollo local también se puede abrir `index.html` con el mismo navegador y perfil en el que estén Tampermonkey y Roll20.
 
 ## Userscript
 
@@ -20,7 +24,7 @@ La ficha utiliza el protocolo ya validado:
 
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
-- Tipos de mensaje: `CHAT_COMMAND` y `DAMAGE_ROLL`
+- Tipos de mensaje: `PING`, `CHAT_COMMAND` y `DAMAGE_ROLL`
 - Versión del protocolo: `3`
 
 El userscript debe incluir:
@@ -39,12 +43,17 @@ El userscript debe incluir:
 - Guardado automático con `localStorage`.
 - Selector de personajes en la cabecera para crear, alternar y eliminar varias fichas independientes.
 - Organización de personajes por campañas y carpetas, con buscador por nombre y movimiento entre carpetas.
-- Las fichas guardadas por versiones anteriores se migran automáticamente a `Mi campaña / Jugadores`.
+- Las eliminaciones destructivas exigen escribir manualmente `ELIMINAR` antes de continuar.
+- La opción `Restablecer` elimina todas las campañas, carpetas y personajes y crea una estructura inicial vacía.
+- Si se elimina el último personaje o campaña, la aplicación genera automáticamente un elemento vacío de sustitución.
+- Las carpetas son opcionales: los personajes no asignados permanecen en la categoría interna `Sin carpeta`, y al eliminar la última carpeta no se crea otra automáticamente.
+- Las fichas guardadas por versiones anteriores se migran automáticamente a `Mi campaña / Personajes`.
 - Migración automática del personaje guardado por versiones anteriores al nuevo listado de personajes.
 - La primera visita carga una ficha vacía si el navegador no tiene ningún personaje guardado.
-- Importación y exportación del personaje en JSON.
+- Importación y exportación en JSON de un personaje individual o de una campaña completa con sus carpetas y personajes.
 - Importación de cualquier `.xlsx` basado en la plantilla ADOM con las hojas `Forma humana` y `Forma de Éxtasis`; se carga en el personaje seleccionado e incluye la imagen incrustada cuando es compatible.
 - Chat de Roll20 integrado: historial sincronizado, mensajes y comandos desde la ficha.
+- Antes de enviar, el puente busca el nombre de la ficha activa en `Hablar como` y selecciona automáticamente el personaje coincidente.
 - Las tiradas del chat muestran su fórmula, los dados individuales y el total con formato claro; los críticos aparecen en verde y las pifias en rojo.
 - Botones de tirada en atributos y habilidades.
 - Tiradas de daño de armas mediante dados `m`, `c` y `M`, con selector de daño a distancia o cuerpo a cuerpo.

@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>ADOM - Ficha externa</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/styles.css?v=33">
+    <link rel="stylesheet" href="css/styles.css?v=38">
 </head>
 <body>
     <div class="app-shell" id="appShell">
@@ -42,14 +42,20 @@
                 <details class="options-menu" id="optionsMenu">
                     <summary class="button button-secondary">Opciones</summary>
                     <div class="options-menu-panel">
+                        <a class="button button-primary" href="instalar.html">Configurar Roll20</a>
                         <button class="button button-primary" id="shareButton" type="button">Compartir</button>
-                        <button class="button button-secondary" id="exportButton" type="button">Exportar JSON</button>
+                        <button class="button button-secondary" id="exportButton" type="button">Exportar personaje</button>
                         <label class="button button-secondary file-button">
-                            Importar JSON
+                            Importar personaje
                             <input id="importInput" type="file" accept="application/json,.json">
                         </label>
+                        <button class="button button-secondary" id="exportCampaignButton" type="button">Exportar campaña</button>
                         <label class="button button-secondary file-button">
-                            Importar Excel
+                            Importar campaña
+                            <input id="importCampaignInput" type="file" accept="application/json,.json">
+                        </label>
+                        <label class="button button-secondary file-button">
+                            Importar personaje Excel
                             <input id="excelImportInput" type="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,.xlsx">
                         </label>
                         <button class="button button-danger button-quiet options-reset-button" id="resetButton" type="button">Restablecer</button>
@@ -277,6 +283,7 @@
                             </div>
                         </label>
                         <p class="bridge-message" id="bridgeMessage" aria-live="polite">El estado se confirmará al enviar el primer comando.</p>
+                        <a class="bridge-setup-link" href="instalar.html">Instalar o reparar la conexión con Roll20</a>
                     </section>
 
                     <section class="help-card" id="formHelp"></section>
@@ -334,11 +341,11 @@
         <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
     </div>
 
-    <script src="js/state.js?v=28"></script>
+    <script src="js/state.js?v=33"></script>
     <script src="js/xlsx-import.js"></script>
     <script src="js/calculations.js"></script>
-    <script src="js/roll20-bridge.js?v=26"></script>
-    <script src="js/ui.js?v=29"></script>
+    <script src="js/roll20-bridge.js?v=29"></script>
+    <script src="js/ui.js?v=43"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

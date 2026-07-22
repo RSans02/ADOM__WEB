@@ -10,6 +10,7 @@
     });
 
     const MESSAGE_TYPES = Object.freeze({
+        PING: "PING",
         CHAT_COMMAND: "CHAT_COMMAND",
         DAMAGE_ROLL: "DAMAGE_ROLL"
     });
@@ -31,7 +32,7 @@
             global.addEventListener(EVENTS.CHAT_UPDATE, event => this.handleChatUpdate(event));
         }
 
-        sendChatCommand(command) {
+        sendChatCommand(command, speakerName = "") {
             const normalized = String(command || "").trim();
             if (!normalized) {
                 return Promise.reject(new Error("El comando está vacío."));
@@ -39,18 +40,19 @@
 
             return this.sendRequest(
                 MESSAGE_TYPES.CHAT_COMMAND,
-                { command: normalized },
+                { command: normalized, speakerName: String(speakerName || "").trim() },
                 "Enviando comando a Roll20…"
             );
         }
 
-        async rollDamageDice(skillValue, attributeValue, weaponName = "") {
+        async rollDamageDice(skillValue, attributeValue, weaponName = "", speakerName = "") {
             const response = await this.sendRequest(
                 MESSAGE_TYPES.DAMAGE_ROLL,
                 {
                     skillValue: Number(skillValue) || 0,
                     attributeValue: Number(attributeValue) || 0,
-                    weaponName: String(weaponName || "")
+                    weaponName: String(weaponName || ""),
+                    speakerName: String(speakerName || "").trim()
                 },
                 "Esperando la tirada de Roll20…"
             );
@@ -105,6 +107,10 @@
             this.pending.delete(response.requestId);
 
             if (response.success) {
+                const speaker = response.data?.speaker;
+                if (speaker?.requested && !speaker.matched) {
+                    this.dispatchEvent(new CustomEvent("speaker-missing", { detail: speaker }));
+                }
                 this.dispatchEvent(new CustomEvent("status", {
                     detail: { state: "connected", message: response.message || "Comando enviado al chat de Roll20." }
                 }));
@@ -114,6 +120,14 @@
                 this.dispatchEvent(new CustomEvent("status", { detail: { state: "error", message: error.message } }));
                 pending.reject(error);
             }
+        }
+
+        checkConnection() {
+            return this.sendRequest(
+                MESSAGE_TYPES.PING,
+                {},
+                "Comprobando la conexión con Roll20…"
+            );
         }
 
         handleChatUpdate(event) {

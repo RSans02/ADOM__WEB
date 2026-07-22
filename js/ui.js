@@ -65,6 +65,7 @@
             this.attributeDropIndex = null;
             this.skillDropIndex = null;
             this.libraryFolderId = "all";
+            this.lastSpeakerWarning = { name: "", at: 0 };
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -78,11 +79,12 @@
             this.store.addEventListener("save-state", event => this.renderSaveState(event.detail.state));
             this.bridge.addEventListener("status", event => this.renderBridgeStatus(event.detail));
             this.bridge.addEventListener("chat", event => this.renderRoll20Chat(event.detail.messages));
+            this.bridge.addEventListener("speaker-missing", event => this.showMissingRoll20Speaker(event.detail));
         }
 
         collectElements() {
             const ids = [
-                "appShell", "characterManager", "campaignSelector", "characterSelector", "openCharacterLibraryButton", "characterLibraryDialog", "closeCharacterLibraryButton", "libraryCampaignSelector", "addCampaignButton", "renameCampaignButton", "deleteCampaignButton", "characterSearch", "folderFilter", "addFolderButton", "renameFolderButton", "deleteFolderButton", "characterLibraryList", "characterLibraryCount", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "excelImportInput", "resetButton",
+                "appShell", "characterManager", "campaignSelector", "characterSelector", "openCharacterLibraryButton", "characterLibraryDialog", "closeCharacterLibraryButton", "libraryCampaignSelector", "addCampaignButton", "renameCampaignButton", "deleteCampaignButton", "characterSearch", "folderFilter", "addFolderButton", "renameFolderButton", "deleteFolderButton", "characterLibraryList", "characterLibraryCount", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "exportCampaignButton", "importCampaignInput", "excelImportInput", "resetButton",
                 "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal", "attributesOrderLinkButton",
                 "skillsList", "skillsTotal", "skillsOrderLinkButton", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
@@ -245,11 +247,13 @@
             });
 
             this.elements.exportButton.addEventListener("click", () => this.exportCharacter());
+            this.elements.exportCampaignButton.addEventListener("click", () => this.exportCampaign());
             this.elements.shareButton.addEventListener("click", () => this.shareCharacter());
             this.elements.optionsMenu.addEventListener("click", event => {
                 if (event.target.closest("button")) global.setTimeout(() => this.elements.optionsMenu.removeAttribute("open"), 0);
             });
             this.elements.importInput.addEventListener("change", event => this.importCharacter(event));
+            this.elements.importCampaignInput.addEventListener("change", event => this.importCampaign(event));
             this.elements.excelImportInput.addEventListener("change", event => this.importExcelCharacter(event));
             this.elements.resetButton.addEventListener("click", () => this.resetCharacter());
         }
@@ -433,10 +437,24 @@
                 });
                 fragment.append(group);
             });
+            const validFolderIds = new Set(folders.map(folder => folder.id));
+            const unassignedCharacters = characters.filter(character => !validFolderIds.has(character.folderId));
+            if (unassignedCharacters.length) {
+                const group = document.createElement("optgroup");
+                group.label = "Sin carpeta";
+                unassignedCharacters.forEach((character, index) => {
+                    const option = document.createElement("option");
+                    option.value = character.id;
+                    option.textContent = character.name || `Personaje sin nombre ${index + 1}`;
+                    option.selected = character.id === activeId;
+                    group.append(option);
+                });
+                fragment.append(group);
+            }
             this.elements.characterSelector.replaceChildren(fragment);
             this.elements.characterSelector.title = this.elements.characterSelector.selectedOptions[0]?.textContent || "";
-            this.elements.deleteCharacterButton.disabled = this.viewerMode || characters.length <= 1;
-            this.elements.deleteCampaignButton.disabled = this.viewerMode || campaigns.length <= 1;
+            this.elements.deleteCharacterButton.disabled = this.viewerMode;
+            this.elements.deleteCampaignButton.disabled = this.viewerMode;
             if (this.elements.characterLibraryDialog.open) this.renderCharacterLibrary();
         }
 
@@ -484,16 +502,14 @@
             });
             const activeId = this.store.getActiveCharacterId();
             const listFragment = document.createDocumentFragment();
-
-            folders.forEach(folder => {
-                if (this.libraryFolderId !== "all" && folder.id !== this.libraryFolderId) return;
-                const folderCharacters = visibleCharacters.filter(character => character.folderId === folder.id);
+            const validFolderIds = new Set(folders.map(folder => folder.id));
+            const appendCharacterGroup = (label, folderCharacters) => {
                 if (!folderCharacters.length) return;
                 const group = document.createElement("section");
                 group.className = "character-folder-group";
                 const heading = document.createElement("h3");
                 heading.className = "character-folder-title";
-                heading.textContent = folder.name;
+                heading.textContent = label;
                 group.append(heading);
 
                 folderCharacters.forEach((character, index) => {
@@ -511,6 +527,11 @@
                     move.className = "character-library-move";
                     move.dataset.moveCharacterId = character.id;
                     move.setAttribute("aria-label", `Mover ${button.textContent} a otra carpeta`);
+                    const unassignedOption = document.createElement("option");
+                    unassignedOption.value = "";
+                    unassignedOption.textContent = "Sin carpeta";
+                    unassignedOption.selected = !validFolderIds.has(character.folderId);
+                    move.append(unassignedOption);
                     folders.forEach(targetFolder => {
                         const option = document.createElement("option");
                         option.value = targetFolder.id;
@@ -522,7 +543,15 @@
                     group.append(row);
                 });
                 listFragment.append(group);
+            };
+
+            folders.forEach(folder => {
+                if (this.libraryFolderId !== "all" && folder.id !== this.libraryFolderId) return;
+                appendCharacterGroup(folder.name, visibleCharacters.filter(character => character.folderId === folder.id));
             });
+            if (this.libraryFolderId === "all") {
+                appendCharacterGroup("Sin carpeta", visibleCharacters.filter(character => !validFolderIds.has(character.folderId)));
+            }
 
             if (!visibleCharacters.length) {
                 const empty = document.createElement("p");
@@ -535,31 +564,37 @@
 
             const folderSelected = this.libraryFolderId !== "all";
             this.elements.renameFolderButton.disabled = this.viewerMode || !folderSelected;
-            this.elements.deleteFolderButton.disabled = this.viewerMode || !folderSelected || folders.length <= 1;
+            this.elements.deleteFolderButton.disabled = this.viewerMode || !folderSelected;
         }
 
-        createCharacter() {
+        async createCharacter() {
             if (this.viewerMode) return;
+            const name = await this.promptText("Nuevo personaje", "Escribe el nombre del personaje.", "Nuevo personaje");
+            if (!name?.trim()) return;
             this.portraitEditing = false;
-            const folders = this.store.getFolders();
-            const folderId = this.libraryFolderId !== "all" ? this.libraryFolderId : folders[0]?.id;
-            this.store.createCharacter({ campaignId: this.store.getActiveCampaignId(), folderId });
+            const folderId = this.libraryFolderId !== "all" ? this.libraryFolderId : "";
+            this.elements.characterSearch.value = "";
+            const characterId = this.store.createCharacter({ campaignId: this.store.getActiveCampaignId(), folderId });
+            this.store.update(state => { state.profile.name = name.trim(); }, { source: "character-name-create" });
             this.showToast("Personaje nuevo creado.", "success");
-            this.elements.characterLibraryDialog.close();
-            this.elements.characterName.focus();
+            const createdButton = Array.from(this.elements.characterLibraryList.querySelectorAll("[data-character-id]"))
+                .find(button => button.dataset.characterId === characterId);
+            createdButton?.focus();
         }
 
-        deleteCharacter() {
-            if (this.viewerMode || this.store.getCharacters().length <= 1) return;
+        async deleteCharacter() {
+            if (this.viewerMode) return;
+            const isLastCharacter = this.store.getCharacters().length <= 1;
             const name = String(this.store.getState().profile.name || "").trim() || "este personaje sin nombre";
-            if (!global.confirm(`¿Quieres eliminar a ${name}? Esta acción no se puede deshacer.`)) return;
+            const replacementNote = isLastCharacter ? " Se generará un personaje vacío en su lugar." : "";
+            if (!await this.confirmDeletion(`Vas a eliminar a «${name}». Esta acción no se puede deshacer.${replacementNote}`)) return;
             this.portraitEditing = false;
             this.store.deleteCharacter(this.store.getActiveCharacterId());
             this.showToast("Personaje eliminado.", "success");
         }
 
-        createCampaign() {
-            const name = global.prompt("Nombre de la nueva campaña:", "Nueva campaña");
+        async createCampaign() {
+            const name = await this.promptText("Nueva campaña", "Escribe el nombre de la campaña.", "Nueva campaña");
             if (!name?.trim()) return;
             this.libraryFolderId = "all";
             this.elements.characterSearch.value = "";
@@ -567,27 +602,28 @@
             this.showToast("Campaña creada.", "success");
         }
 
-        renameCampaign() {
+        async renameCampaign() {
             const campaign = this.store.getCampaigns().find(item => item.id === this.store.getActiveCampaignId());
             if (!campaign) return;
-            const name = global.prompt("Nuevo nombre de la campaña:", campaign.name);
+            const name = await this.promptText("Renombrar campaña", "Escribe el nuevo nombre de la campaña.", campaign.name);
             if (!name?.trim()) return;
             this.store.renameCampaign(campaign.id, name);
         }
 
-        deleteCampaign() {
+        async deleteCampaign() {
             const campaigns = this.store.getCampaigns();
             const campaign = campaigns.find(item => item.id === this.store.getActiveCampaignId());
-            if (!campaign || campaigns.length <= 1) return;
-            if (!global.confirm(`¿Eliminar la campaña «${campaign.name}» y todos sus personajes? Esta acción no se puede deshacer.`)) return;
+            if (!campaign) return;
+            const replacementNote = campaigns.length <= 1 ? " Se generará una campaña vacía en su lugar." : "";
+            if (!await this.confirmDeletion(`Vas a eliminar la campaña «${campaign.name}» y todos sus personajes. Esta acción no se puede deshacer.${replacementNote}`)) return;
             this.libraryFolderId = "all";
             this.elements.characterSearch.value = "";
             this.store.deleteCampaign(campaign.id);
             this.showToast("Campaña eliminada.", "success");
         }
 
-        createFolder() {
-            const name = global.prompt("Nombre de la nueva carpeta:", "Nueva carpeta");
+        async createFolder() {
+            const name = await this.promptText("Nueva carpeta", "Escribe el nombre de la carpeta.", "Nueva carpeta");
             if (!name?.trim()) return;
             const folderId = this.store.createFolder(this.store.getActiveCampaignId(), name);
             if (folderId) {
@@ -596,20 +632,24 @@
             }
         }
 
-        renameFolder() {
+        async renameFolder() {
             if (this.libraryFolderId === "all") return;
             const folder = this.store.getFolders().find(item => item.id === this.libraryFolderId);
             if (!folder) return;
-            const name = global.prompt("Nuevo nombre de la carpeta:", folder.name);
+            const name = await this.promptText("Renombrar carpeta", "Escribe el nuevo nombre de la carpeta.", folder.name);
             if (!name?.trim()) return;
             this.store.renameFolder(this.store.getActiveCampaignId(), folder.id, name);
         }
 
-        deleteFolder() {
+        async deleteFolder() {
             if (this.libraryFolderId === "all") return;
             const folder = this.store.getFolders().find(item => item.id === this.libraryFolderId);
             if (!folder) return;
-            if (!global.confirm(`¿Eliminar la carpeta «${folder.name}»? Sus personajes se moverán a otra carpeta.`)) return;
+            const isLastFolder = this.store.getFolders().length <= 1;
+            const replacementNote = isLastFolder
+                ? " Sus personajes quedarán sin carpeta."
+                : " Sus personajes se moverán a otra carpeta.";
+            if (!await this.confirmDeletion(`Vas a eliminar la carpeta «${folder.name}».${replacementNote}`)) return;
             this.store.deleteFolder(this.store.getActiveCampaignId(), folder.id);
             this.libraryFolderId = "all";
         }
@@ -638,8 +678,8 @@
             }, { source: "theme-background" });
         }
 
-        resetAppearance() {
-            if (!global.confirm("¿Quieres restablecer los colores de apariencia de ambas formas?")) return;
+        async resetAppearance() {
+            if (!await this.confirmAction("¿Quieres restablecer los colores de apariencia de ambas formas?", "Restablecer apariencia")) return;
             this.store.update(state => {
                 state.settings.formColors.human = "#a64d78";
                 state.settings.formColors.ecstasy = "#3f7f8b";
@@ -865,7 +905,15 @@
             if (copied) {
                 this.showToast("Enlace de solo lectura copiado. Incluye la foto y su encuadre.", "success");
             } else {
-                global.prompt("Copia este enlace para compartir la ficha en modo de solo lectura:", shareUrl);
+                await this.showSimpleModal({
+                    title: "Compartir ficha",
+                    message: "Copia este enlace para compartir la ficha en modo de solo lectura.",
+                    inputValue: shareUrl,
+                    inputLabel: "Enlace",
+                    readOnly: true,
+                    confirmLabel: "Cerrar",
+                    showCancel: false
+                });
             }
             if (global.location.protocol === "file:") {
                 this.showToast("El enlace local solo funcionará donde exista esta misma ruta. Publícalo por HTTP/HTTPS para compartirlo con otras personas.", "info");
@@ -1013,8 +1061,8 @@
 
         renderDrama(values) {
             this.elements.dramaTrack.innerHTML = values.map((checked, index) => `
-                <label class="track-check" title="Drama ${index + 1}">
-                    <input type="checkbox" ${checked ? "checked" : ""} data-action="drama" data-index="${index}">
+                <label class="track-check">
+                    <input type="checkbox" aria-label="Drama ${index + 1}" ${checked ? "checked" : ""} data-action="drama" data-index="${index}">
                 </label>
             `).join("");
             this.bindDynamicContainer(this.elements.dramaTrack);
@@ -1085,8 +1133,8 @@
                 <p class="distortion-caption">Éxtasis</p>
                 <div class="distortion-grid">
                     ${distortion.ecstasyTrack.map((checked, index) => `
-                        <label class="track-check" title="Casilla de éxtasis ${index + 1}">
-                            <input type="checkbox" ${checked ? "checked" : ""} data-action="ecstasy-track" data-index="${index}">
+                        <label class="track-check">
+                            <input type="checkbox" aria-label="Casilla de éxtasis ${index + 1}" ${checked ? "checked" : ""} data-action="ecstasy-track" data-index="${index}">
                         </label>
                     `).join("")}
                 </div>
@@ -1350,7 +1398,7 @@
             });
         }
 
-        handleDynamicClick(event) {
+        async handleDynamicClick(event) {
             const target = event.target.closest("button[data-action]");
             if (!target) return;
             const action = target.dataset.action;
@@ -1378,7 +1426,7 @@
 
             if (action === "clear-temporal") {
                 const aspect = this.store.getState().profile.temporalAspects[index];
-                if (!global.confirm(`¿Seguro que quieres vaciar el aspecto${aspect?.trim() ? ` «${aspect.trim()}»` : ""}?`)) return;
+                if (!await this.confirmAction(`¿Seguro que quieres vaciar el aspecto${aspect?.trim() ? ` «${aspect.trim()}»` : ""}?`, "Vaciar aspecto")) return;
             }
             if (action === "remove-weapon") {
                 if (index === 0) {
@@ -1386,7 +1434,7 @@
                     return;
                 }
                 const weapon = this.store.getState().human.weapons[index];
-                if (!global.confirm(`¿Seguro que quieres eliminar el arma${weapon?.name?.trim() ? ` «${weapon.name.trim()}»` : ""}?`)) return;
+                if (!await this.confirmAction(`¿Seguro que quieres eliminar el arma${weapon?.name?.trim() ? ` «${weapon.name.trim()}»` : ""}?`, "Eliminar arma", true)) return;
             }
             if (action === "remove-arcane") {
                 if (index === 0) {
@@ -1394,7 +1442,7 @@
                     return;
                 }
                 const arcaneSkill = this.store.getState().ecstasy.arcaneSkills[index];
-                if (!global.confirm(`¿Seguro que quieres eliminar la habilidad arcana${arcaneSkill?.name?.trim() ? ` «${arcaneSkill.name.trim()}»` : ""}?`)) return;
+                if (!await this.confirmAction(`¿Seguro que quieres eliminar la habilidad arcana${arcaneSkill?.name?.trim() ? ` «${arcaneSkill.name.trim()}»` : ""}?`, "Eliminar habilidad arcana", true)) return;
             }
 
             this.store.update(state => {
@@ -1610,7 +1658,8 @@
                 dice = await this.bridge.rollDamageDice(
                     ADOM.Calculations.number(skill.value),
                     ADOM.Calculations.number(attribute.value),
-                    weapon.name
+                    weapon.name,
+                    this.store.getState().profile.name
                 );
             } catch (error) {
                 this.showToast(error.message, "error");
@@ -1642,8 +1691,9 @@
 
         async sendRollCommand(command, label) {
             try {
-                await this.bridge.sendChatCommand(command);
-                this.showToast(`${label}: enviado a Roll20.`, "success");
+                const response = await this.bridge.sendChatCommand(command, this.store.getState().profile.name);
+                const speakerMissing = response?.data?.speaker?.requested && !response.data.speaker.matched;
+                if (!speakerMissing) this.showToast(`${label}: enviado a Roll20.`, "success");
                 return true;
             } catch (error) {
                 this.showToast(error.message, "error");
@@ -1656,6 +1706,15 @@
             this.elements.connectionStatus.dataset.state = state;
             this.elements.connectionStatus.textContent = state === "connected" ? "Conectado" : state === "error" ? "Sin respuesta" : "Enviando…";
             this.elements.bridgeMessage.textContent = detail.message;
+        }
+
+        showMissingRoll20Speaker(detail) {
+            const name = String(detail?.name || this.store.getState().profile.name || "").trim();
+            if (!name) return;
+            const now = Date.now();
+            if (this.lastSpeakerWarning.name === name && now - this.lastSpeakerWarning.at < 5000) return;
+            this.lastSpeakerWarning = { name, at: now };
+            this.showToast(`Crea en Roll20 un personaje llamado «${name}» y concédete permiso para controlarlo.`, "error");
         }
 
         renderRoll20Chat(messages) {
@@ -1746,19 +1805,30 @@
 
         exportCharacter() {
             const state = this.store.getState();
-            const safeName = String(state.profile.name || "personaje-adom")
+            this.downloadJson(this.store.exportJson(), state.profile.name || "personaje-adom");
+            this.showToast("Personaje exportado en JSON.", "success");
+        }
+
+        exportCampaign() {
+            const campaign = this.store.getCampaigns().find(item => item.id === this.store.getActiveCampaignId());
+            if (!campaign) return;
+            this.downloadJson(this.store.exportCampaignJson(campaign.id), campaign.name || "campana-adom");
+            this.showToast("Campaña completa exportada en JSON.", "success");
+        }
+
+        downloadJson(contents, name) {
+            const safeName = String(name || "adom")
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
                 .replace(/[^a-zA-Z0-9-_]+/g, "-")
                 .replace(/^-|-$/g, "")
-                .toLowerCase() || "personaje-adom";
-            const blob = new Blob([this.store.exportJson()], { type: "application/json;charset=utf-8" });
+                .toLowerCase() || "adom";
+            const blob = new Blob([contents], { type: "application/json;charset=utf-8" });
             const url = URL.createObjectURL(blob);
             const anchor = document.createElement("a");
             anchor.href = url;
             anchor.download = `${safeName}.json`;
             anchor.click();
             URL.revokeObjectURL(url);
-            this.showToast("Personaje exportado en JSON.", "success");
         }
 
         importCharacter(event) {
@@ -1767,8 +1837,9 @@
             const reader = new FileReader();
             reader.onload = () => {
                 try {
-                    this.store.importJson(String(reader.result));
-                    this.showToast("Personaje importado correctamente.", "success");
+                    this.portraitEditing = false;
+                    this.store.importCharacterJson(String(reader.result));
+                    this.showToast("Personaje añadido a la campaña actual.", "success");
                 } catch (error) {
                     this.showToast(`No se pudo importar el archivo: ${error.message}`, "error");
                 } finally {
@@ -1777,6 +1848,31 @@
                 }
             };
             reader.onerror = () => this.showToast("No se pudo leer el archivo seleccionado.", "error");
+            reader.readAsText(file);
+        }
+
+        importCampaign(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    this.libraryFolderId = "all";
+                    this.elements.characterSearch.value = "";
+                    this.portraitEditing = false;
+                    this.store.importCampaignJson(String(reader.result));
+                    this.showToast("Campaña completa importada correctamente.", "success");
+                } catch (error) {
+                    this.showToast(`No se pudo importar la campaña: ${error.message}`, "error");
+                } finally {
+                    event.target.value = "";
+                    this.elements.optionsMenu.removeAttribute("open");
+                }
+            };
+            reader.onerror = () => {
+                event.target.value = "";
+                this.showToast("No se pudo leer el archivo de campaña.", "error");
+            };
             reader.readAsText(file);
         }
 
@@ -1796,17 +1892,153 @@
             }
         }
 
+        confirmAction(message, title = "Confirmar", danger = false) {
+            return this.showSimpleModal({
+                title,
+                message,
+                confirmLabel: "Confirmar",
+                danger
+            });
+        }
+
+        promptText(title, message, initialValue = "") {
+            return this.showSimpleModal({
+                title,
+                message,
+                inputValue: initialValue,
+                inputLabel: "Nombre",
+                confirmLabel: "Guardar"
+            });
+        }
+
+        showSimpleModal(options) {
+            return new Promise(resolve => {
+                const hasInput = Object.prototype.hasOwnProperty.call(options, "inputValue");
+                const showCancel = options.showCancel !== false;
+                const dialog = document.createElement("dialog");
+                dialog.className = "destructive-confirm-dialog simple-modal-dialog";
+                dialog.innerHTML = `
+                    <form class="attribute-picker reset-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="simpleModalTitle">
+                        <h2 id="simpleModalTitle">${escapeHtml(options.title || "Confirmar")}</h2>
+                        <p>${escapeHtml(options.message || "")}</p>
+                        ${hasInput ? `
+                            <label class="field">
+                                <span>${escapeHtml(options.inputLabel || "Texto")}</span>
+                                <input type="text" class="reset-confirm-input simple-modal-input" value="${escapeHtml(options.inputValue || "")}" autocomplete="off" spellcheck="false" ${options.readOnly ? "readonly" : ""}>
+                            </label>
+                        ` : ""}
+                        <div class="reset-confirm-actions">
+                            ${showCancel ? `<button type="button" class="button button-secondary simple-modal-cancel">Cancelar</button>` : ""}
+                            <button type="submit" class="button ${options.danger ? "button-danger reset-confirm-submit" : "button-primary"} simple-modal-submit">${escapeHtml(options.confirmLabel || "Aceptar")}</button>
+                        </div>
+                    </form>
+                `;
+
+                const input = dialog.querySelector(".simple-modal-input");
+                const submitButton = dialog.querySelector(".simple-modal-submit");
+                let completed = false;
+                const close = accepted => {
+                    if (completed) return;
+                    completed = true;
+                    const result = accepted ? (hasInput ? input.value.trim() : true) : (hasInput ? null : false);
+                    dialog.close();
+                    dialog.remove();
+                    resolve(result);
+                };
+                const syncSubmit = () => {
+                    if (input && !options.readOnly) submitButton.disabled = !input.value.trim();
+                };
+
+                input?.addEventListener("input", syncSubmit);
+                input?.addEventListener("click", () => {
+                    if (options.readOnly) input.select();
+                });
+                dialog.addEventListener("cancel", event => {
+                    event.preventDefault();
+                    close(false);
+                });
+                dialog.addEventListener("click", event => {
+                    if (event.target === dialog || event.target.closest(".simple-modal-cancel")) close(false);
+                });
+                dialog.querySelector("form").addEventListener("submit", event => {
+                    event.preventDefault();
+                    if (!submitButton.disabled) close(true);
+                });
+
+                document.body.appendChild(dialog);
+                dialog.showModal();
+                this.syncTextInputTitles(dialog);
+                syncSubmit();
+                if (input) {
+                    input.focus();
+                    input.select();
+                } else {
+                    submitButton.focus();
+                }
+            });
+        }
+
+        confirmDeletion(description) {
+            return new Promise(resolve => {
+                const dialog = document.createElement("dialog");
+                dialog.className = "destructive-confirm-dialog";
+                dialog.innerHTML = `
+                    <form class="attribute-picker reset-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+                        <h2 id="deleteConfirmTitle">Confirmar eliminación</h2>
+                        <p>${escapeHtml(description)} Para continuar, escribe <strong>ELIMINAR</strong>.</p>
+                        <label class="field">
+                            <span>Confirmación</span>
+                            <input type="text" class="reset-confirm-input" autocomplete="off" spellcheck="false" placeholder="ELIMINAR">
+                        </label>
+                        <div class="reset-confirm-actions">
+                            <button type="button" class="button button-secondary reset-confirm-cancel">Cancelar</button>
+                            <button type="submit" class="button button-danger reset-confirm-submit" disabled>Eliminar</button>
+                        </div>
+                    </form>
+                `;
+
+                const input = dialog.querySelector(".reset-confirm-input");
+                const submitButton = dialog.querySelector(".reset-confirm-submit");
+                const close = confirmed => {
+                    dialog.close();
+                    dialog.remove();
+                    resolve(confirmed);
+                };
+
+                input.addEventListener("input", () => {
+                    input.title = input.value;
+                    submitButton.disabled = input.value !== "ELIMINAR";
+                });
+                dialog.addEventListener("cancel", event => {
+                    event.preventDefault();
+                    close(false);
+                });
+                dialog.addEventListener("click", event => {
+                    if (event.target === dialog || event.target.closest(".reset-confirm-cancel")) close(false);
+                });
+                dialog.querySelector("form").addEventListener("submit", event => {
+                    event.preventDefault();
+                    if (input.value === "ELIMINAR") close(true);
+                });
+
+                document.body.appendChild(dialog);
+                dialog.showModal();
+                this.syncTextInputTitles(dialog);
+                input.focus();
+            });
+        }
+
         confirmReset() {
             return new Promise(resolve => {
                 const backdrop = document.createElement("div");
                 backdrop.className = "attribute-picker-backdrop";
                 backdrop.innerHTML = `
                     <form class="attribute-picker reset-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="resetConfirmTitle">
-                        <h2 id="resetConfirmTitle">Restablecer toda la ficha</h2>
-                        <p>Esta acción vaciará todos los datos, incluida la imagen. Para continuar, escribe <strong>RESTABLECER</strong>.</p>
+                        <h2 id="resetConfirmTitle">Restablecer todos los datos</h2>
+                        <p class="reset-danger-message">Esta acción eliminará todas las campañas, carpetas y personajes, incluidas sus imágenes y ajustes. Para continuar, escribe <strong>ELIMINAR</strong>.</p>
                         <label class="field">
                             <span>Confirmación</span>
-                            <input type="text" class="reset-confirm-input" autocomplete="off" spellcheck="false" placeholder="RESTABLECER">
+                            <input type="text" class="reset-confirm-input" autocomplete="off" spellcheck="false" placeholder="ELIMINAR">
                         </label>
                         <div class="reset-confirm-actions">
                             <button type="button" class="button button-secondary reset-confirm-cancel">Cancelar</button>
@@ -1828,14 +2060,14 @@
 
                 input.addEventListener("input", () => {
                     input.title = input.value;
-                    submitButton.disabled = input.value !== "RESTABLECER";
+                    submitButton.disabled = input.value !== "ELIMINAR";
                 });
                 backdrop.addEventListener("click", event => {
                     if (event.target === backdrop || event.target.closest(".reset-confirm-cancel")) close(false);
                 });
                 backdrop.querySelector("form").addEventListener("submit", event => {
                     event.preventDefault();
-                    if (input.value === "RESTABLECER") close(true);
+                    if (input.value === "ELIMINAR") close(true);
                 });
 
                 document.addEventListener("keydown", onKeyDown);
@@ -1847,8 +2079,11 @@
 
         async resetCharacter() {
             if (!await this.confirmReset()) return;
-            this.store.reset();
-            this.showToast("Ficha vaciada por completo.", "success");
+            this.libraryFolderId = "all";
+            this.elements.characterSearch.value = "";
+            this.portraitEditing = false;
+            this.store.resetAll();
+            this.showToast("Todos los datos se han restablecido.", "success");
         }
 
         showToast(message, type) {
