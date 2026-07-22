@@ -1513,13 +1513,28 @@ input[type="checkbox"] {
 
 .roll20-heading-actions {
     display: flex;
-    flex: 0 0 auto;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    align-self: center;
     align-items: flex-end;
     gap: 6px;
     flex-direction: column;
 }
 
+.roll20-heading-actions .connection-pill,
+.roll20-heading-actions .roll20-setup-button {
+    max-width: 100%;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.connection-pill.is-hidden {
+    display: none;
+}
+
 .roll20-setup-button {
+    box-sizing: border-box;
     padding: 3px 7px;
     border: 1px solid transparent;
     border-radius: 7px;

@@ -1710,6 +1710,7 @@
                         ? "update"
                         : "unknown";
             this.elements.connectionStatus.dataset.state = state;
+            this.elements.connectionStatus.classList.toggle("is-hidden", state === "update");
             this.elements.connectionStatus.textContent = state === "connected"
                 ? "Conectado"
                 : state === "error"
