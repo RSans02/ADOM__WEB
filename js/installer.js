@@ -149,7 +149,7 @@
             await bridge.checkConnection();
             roll20Connected = true;
             elements.connectionResult.dataset.state = "success";
-            elements.connectionResult.textContent = "Conexión correcta. Roll20 ha respondido sin publicar ningún mensaje.";
+            elements.connectionResult.textContent = "Conexión correcta con Roll20.";
         } catch (error) {
             roll20Connected = false;
             elements.connectionResult.dataset.state = "error";
