@@ -1,0 +1,39 @@
+.brand-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.brand-mark {
+    display: block;
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+    filter: drop-shadow(0 6px 8px rgba(var(--accent-rgb, 166, 77, 120), 0.22));
+}
+
+.brand-copy {
+    display: block;
+}
+
+.brand-eyebrow {
+    display: block;
+    margin: 0 0 4px;
+    color: var(--muted);
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: normal;
+    text-transform: uppercase;
+}
+
+.brand-title {
+    display: block;
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    line-height: 1;
+}

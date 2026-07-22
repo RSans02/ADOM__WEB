@@ -169,16 +169,6 @@ input[type="checkbox"] {
 
 .brand-block {
     grid-area: brand;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.brand-mark {
-    width: 44px;
-    height: 44px;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 8px rgba(var(--accent-rgb), 0.22));
 }
 
 .character-library-dialog {
@@ -380,7 +370,6 @@ input[type="checkbox"] {
     gap: 7px;
 }
 
-.brand-block h1,
 .roll20-heading h2 {
     margin: 0;
     line-height: 1;
