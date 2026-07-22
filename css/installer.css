@@ -128,7 +128,7 @@ h1 {
     align-items: center;
     gap: 12px;
     min-width: min(100%, 430px);
-    padding: 13px 18px;
+    padding: 16px 22px;
     border: 1px solid var(--line);
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.78);
@@ -166,7 +166,7 @@ h1 {
 .setup-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
+    gap: 20px;
 }
 
 .setup-card {
@@ -174,7 +174,7 @@ h1 {
     display: flex;
     flex-direction: column;
     min-height: 380px;
-    padding: 22px;
+    padding: 28px;
     overflow: hidden;
     border: 1px solid rgba(126, 43, 85, 0.18);
     border-radius: 20px;
@@ -202,7 +202,7 @@ h1 {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 22px;
+    margin-bottom: 26px;
 }
 
 .step-number {
@@ -231,12 +231,12 @@ h1 {
 .setup-card h2,
 .ready-panel h2,
 .installer-tools h2 {
-    margin: 0 0 9px;
+    margin: 0 0 12px;
     font-size: 1.18rem;
 }
 
 .setup-card p {
-    margin: 0 0 16px;
+    margin: 0 0 20px;
     color: var(--muted);
     font-size: 0.88rem;
     line-height: 1.58;
@@ -245,10 +245,15 @@ h1 {
 .browser-detection,
 .version-line,
 .connection-result {
-    padding: 10px 12px;
+    padding: 13px 15px;
     border-radius: 10px;
     background: var(--accent-soft);
     font-size: 0.78rem !important;
+}
+
+.version-line,
+.connection-result {
+    margin-top: 14px !important;
 }
 
 .setup-card[data-state="complete"] .version-line,
@@ -263,7 +268,12 @@ h1 {
 }
 
 .chromium-note {
+    margin: 12px 0 0 !important;
+    padding: 12px 14px;
+    border: 1px solid rgba(139, 97, 24, 0.14);
+    border-radius: 10px;
     color: var(--warning) !important;
+    background: rgba(139, 97, 24, 0.055);
     font-size: 0.74rem !important;
 }
 
@@ -271,9 +281,9 @@ h1 {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 44px;
+    min-height: 48px;
     margin-top: auto;
-    padding: 10px 15px;
+    padding: 12px 18px;
     border: 1px solid transparent;
     border-radius: 10px;
     cursor: pointer;
@@ -283,7 +293,7 @@ h1 {
     transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
-.action-button + .action-button { margin-top: 8px; }
+.action-button + .action-button { margin-top: 10px; }
 
 .action-button:hover {
     transform: translateY(-1px);
@@ -326,8 +336,8 @@ h1 {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 16px;
-    padding: 20px;
+    gap: 20px;
+    padding: 26px 28px;
     border-color: rgba(35, 118, 84, 0.35);
     background: var(--success-soft);
 }
@@ -355,8 +365,8 @@ h1 {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 18px;
-    padding: 22px;
+    gap: 22px;
+    padding: 28px;
 }
 
 .installer-tools .action-button { margin: 0; }
@@ -369,17 +379,17 @@ h1 {
     text-align: right;
 }
 
-.troubleshooting { padding: 0 20px; }
+.troubleshooting { padding: 0 28px; }
 
 .troubleshooting summary {
-    padding: 18px 0;
+    padding: 22px 0;
     color: var(--accent-strong);
     cursor: pointer;
     font-weight: 850;
 }
 
 .troubleshooting ol {
-    margin: 0 0 20px;
+    margin: 0 0 26px;
     padding-left: 22px;
     color: var(--muted);
     line-height: 1.7;
@@ -398,7 +408,10 @@ h1 {
 
 @media (max-width: 900px) {
     .setup-grid { grid-template-columns: 1fr; }
-    .setup-card { min-height: 0; }
+    .setup-card {
+        min-height: 0;
+        padding: 24px;
+    }
     .action-button { margin-top: 8px; }
 }
 
@@ -406,6 +419,13 @@ h1 {
     .installer-header { min-height: 62px; }
     .installer-brand img { height: 42px; }
     .installer-main { width: min(100% - 22px, 1180px); padding-top: 34px; }
+    .overall-status { padding: 14px 17px; }
+    .setup-grid { gap: 14px; }
+    .setup-card { padding: 20px; }
+    .step-heading { margin-bottom: 20px; }
+    .ready-panel,
+    .installer-tools { padding: 22px 18px; }
+    .troubleshooting { padding: 0 18px; }
     .ready-panel,
     .installer-tools { grid-template-columns: 1fr; text-align: center; }
     .ready-icon { margin: 0 auto; }
