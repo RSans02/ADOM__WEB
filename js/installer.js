@@ -188,9 +188,15 @@
         elements.connectionResult.textContent = "Buscando una partida de Roll20 abierta…";
         try {
             await bridge.checkConnection();
-            roll20Connected = true;
-            elements.connectionResult.dataset.state = "success";
-            elements.connectionResult.textContent = "Conexión correcta con Roll20.";
+            if (bridge.roll20ReloadRequired) {
+                roll20Connected = false;
+                elements.connectionResult.dataset.state = "error";
+                elements.connectionResult.textContent = "Roll20 sigue usando la versión anterior. Abre la pestaña de Roll20 y pulsa F5; después se comprobará de nuevo.";
+            } else {
+                roll20Connected = true;
+                elements.connectionResult.dataset.state = "success";
+                elements.connectionResult.textContent = "Conexión correcta con Roll20.";
+            }
         } catch (error) {
             roll20Connected = false;
             elements.connectionResult.dataset.state = "error";

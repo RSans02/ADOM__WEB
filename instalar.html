@@ -6,7 +6,7 @@
     <meta name="color-scheme" content="light">
     <title>Instalar ADOM con Roll20</title>
     <link rel="icon" type="image/png" href="favicon.png">
-    <link rel="stylesheet" href="css/installer.css?v=13">
+    <link rel="stylesheet" href="css/installer.css?v=19">
     <link rel="stylesheet" href="css/brand.css?v=1">
 </head>
 <body>
@@ -47,6 +47,7 @@
                 <div class="chromium-note" id="chromiumNote" hidden></div>
             </article>
 
+            <div class="setup-secondary">
             <article class="setup-card" id="bridgeStep" data-state="pending">
                 <div class="step-heading">
                     <span class="step-number">2</span>
@@ -72,6 +73,18 @@
                 <button class="action-button secondary" id="checkConnectionButton" type="button">Comprobar conexión</button>
                 <p class="connection-result" id="connectionResult" aria-live="polite">Todavía no se ha comprobado.</p>
             </article>
+
+            <section class="installer-tools">
+                <div>
+                    <h2>Para el director de juego</h2>
+                    <p>Comparte este asistente con cada jugador. Sus personajes se guardan en su propio navegador y puedes enviarles una ficha o campaña mediante JSON.</p>
+                </div>
+                <div class="installer-copy-control">
+                    <button class="action-button secondary" id="copyGuideLink" type="button">Copiar enlace de instalación</button>
+                    <span class="copy-result" id="copyResult" aria-live="polite"></span>
+                </div>
+            </section>
+            </div>
         </section>
 
         <section class="ready-panel" id="readyPanel" hidden>
@@ -81,17 +94,6 @@
                 <p>Ya puedes abrir la ficha. Mantén Roll20 abierto en otra pestaña mientras juegas.</p>
             </div>
             <a class="action-button primary" href="index.html">Abrir mi ficha ADOM</a>
-        </section>
-
-        <section class="installer-tools">
-            <div>
-                <h2>Para el director de juego</h2>
-                <p>Comparte este asistente con cada jugador. Sus personajes se guardan en su propio navegador y puedes enviarles una ficha o campaña mediante JSON.</p>
-            </div>
-            <div class="installer-copy-control">
-                <button class="action-button secondary" id="copyGuideLink" type="button">Copiar enlace de instalación</button>
-                <span class="copy-result" id="copyResult" aria-live="polite"></span>
-            </div>
         </section>
 
         <details class="troubleshooting">
@@ -111,7 +113,7 @@
         <a href="index.html">Volver a la ficha</a>
     </footer>
 
-    <script src="js/roll20-bridge.js?v=31"></script>
-    <script src="js/installer.js?v=6"></script>
+    <script src="js/roll20-bridge.js?v=36"></script>
+    <script src="js/installer.js?v=7"></script>
 </body>
 </html>

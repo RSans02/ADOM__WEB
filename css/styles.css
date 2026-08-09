@@ -58,16 +58,26 @@ select {
     border: 1px solid var(--line);
     border-radius: 7px;
     color: var(--ink);
-    background: rgba(255, 255, 255, 0.86);
+    background-color: rgba(255, 255, 255, 0.86);
     outline: none;
     transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+}
+
+select {
+    padding-right: 28px;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.25 6 6.25l5-5' fill='none' stroke='%23746b76' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 10px 7px;
 }
 
 input:focus,
 textarea:focus,
 select:focus {
     border-color: var(--accent);
-    background: #fff;
+    background-color: #fff;
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
 }
 
@@ -572,7 +582,7 @@ input[type="checkbox"] {
     opacity: 1;
     color: var(--ink);
     border-color: var(--line);
-    background: transparent;
+    background-color: transparent;
 }
 
 .app-shell[data-viewer="true"] .anchor-cell {
@@ -938,6 +948,16 @@ input[type="checkbox"] {
     gap: 8px;
 }
 
+.derived-roll-placeholder {
+    flex: 0 0 28px;
+    width: 28px;
+    height: 28px;
+}
+
+.app-shell[data-viewer="true"] .derived-roll-placeholder {
+    display: none;
+}
+
 .repeatable-row input,
 .arcane-row input,
 .weapon-row input,
@@ -945,6 +965,11 @@ input[type="checkbox"] {
 .bond-row input {
     min-height: 32px;
     padding: 5px 7px;
+}
+
+.weapon-row select {
+    padding-right: 25px;
+    background-position: right 8px center;
 }
 
 #temporalAspectsList .repeatable-row input {
@@ -1106,7 +1131,8 @@ input[type="checkbox"] {
 }
 
 .inline-number input {
-    max-width: 100px;
+    max-width: none;
+    flex: 1 1 auto;
     min-height: 28px;
 }
 
@@ -1144,6 +1170,31 @@ input[type="checkbox"] {
     color: var(--accent-strong);
     font-size: 0.8rem;
     font-weight: 650;
+}
+
+.health-resistance-row {
+    grid-template-columns: auto minmax(0, 1fr);
+}
+
+.combat-rd-row,
+.distortion-level-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+}
+
+.combat-rd-input[type="number"],
+.distortion-level-input[type="number"] {
+    width: 60px;
+    min-width: 46px;
+    min-height: 32px;
+    padding: 5px 7px;
+    text-align: right;
+    transform: translateX(23px);
+}
+
+.combat-rd-input[type="number"]::-webkit-inner-spin-button,
+.distortion-level-input[type="number"]::-webkit-inner-spin-button {
+    margin-left: 4px;
 }
 
 .wounds-block {
@@ -2297,6 +2348,233 @@ input[type="checkbox"] {
     background: rgba(139, 97, 24, 0.11);
 }
 
+.connection-pill[data-state="reload"] {
+    color: var(--warning);
+    background: rgba(139, 97, 24, 0.11);
+}
+
+.roll20-setup-button.is-reload {
+    color: #fff;
+    border-color: var(--warning);
+    background: var(--warning);
+}
+
+/* Imagen que Roll20 muestra a los jugadores */
+.roll20-handout-dialog {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: clamp(12px, 3vw, 38px);
+    overflow: auto;
+    border: 0;
+    color: var(--ink);
+    background: rgba(35, 25, 32, 0.74);
+}
+
+.roll20-handout-dialog[open] {
+    display: grid;
+    place-items: center;
+}
+
+.roll20-handout-dialog::backdrop {
+    background: rgba(35, 25, 32, 0.76);
+    backdrop-filter: blur(5px);
+}
+
+.roll20-handout-panel {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: min(1100px, 100%);
+    max-height: calc(100vh - clamp(24px, 6vw, 76px));
+    overflow: hidden;
+    border: 1px solid rgba(var(--accent-rgb), 0.34);
+    border-radius: 18px;
+    background: var(--surface);
+    box-shadow: 0 28px 80px rgba(20, 10, 16, 0.42);
+}
+
+.roll20-handout-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px 18px;
+    border-bottom: 1px solid rgba(var(--accent-rgb), 0.2);
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.roll20-handout-header > div {
+    min-width: 0;
+}
+
+.roll20-handout-heading {
+    flex: 1 1 auto;
+}
+
+.roll20-handout-header h2 {
+    margin: 0;
+    overflow: hidden;
+    font-size: clamp(1rem, 2.2vw, 1.35rem);
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.roll20-handout-close {
+    display: grid;
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 50%;
+    color: var(--accent-strong);
+    background: var(--accent-soft);
+    cursor: pointer;
+    font-size: 1.55rem;
+    line-height: 1;
+}
+
+.roll20-handout-close:hover,
+.roll20-handout-close:focus-visible {
+    border-color: var(--accent);
+    background: rgba(var(--accent-rgb), 0.16);
+    outline: none;
+}
+
+.roll20-handout-actions,
+.roll20-handout-zoom {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+}
+
+.roll20-handout-actions {
+    gap: 12px;
+}
+
+.roll20-handout-zoom {
+    overflow: hidden;
+    border: 1px solid rgba(var(--accent-rgb), 0.25);
+    border-radius: 999px;
+    background: var(--accent-soft);
+}
+
+.roll20-handout-zoom button {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 10px;
+    border: 0;
+    color: var(--accent-strong);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800;
+}
+
+.roll20-handout-zoom button + button {
+    border-left: 1px solid rgba(var(--accent-rgb), 0.2);
+}
+
+.roll20-handout-zoom button:nth-child(2) {
+    min-width: 62px;
+    font-size: 0.82rem;
+}
+
+.roll20-handout-zoom button:hover,
+.roll20-handout-zoom button:focus-visible {
+    background: rgba(var(--accent-rgb), 0.14);
+    outline: none;
+}
+
+.roll20-handout-zoom button:disabled {
+    cursor: default;
+    opacity: 0.42;
+}
+
+.roll20-handout-stage {
+    display: grid;
+    min-height: 180px;
+    padding: clamp(8px, 1.5vw, 16px);
+    place-items: center;
+    overflow: hidden;
+    background: #211c20;
+    cursor: grab;
+    touch-action: none;
+    user-select: none;
+}
+
+.roll20-handout-stage.is-dragging {
+    cursor: grabbing;
+}
+
+.roll20-handout-stage img {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: auto;
+    max-height: calc(100vh - 150px);
+    object-fit: contain;
+    transform-origin: center;
+    transition: transform 140ms ease;
+    will-change: transform;
+    pointer-events: none;
+}
+
+.roll20-handout-stage.is-dragging img {
+    transition: none;
+}
+
+@media (max-width: 620px) {
+    .roll20-handout-dialog {
+        padding: 8px;
+    }
+
+    .roll20-handout-panel {
+        max-height: calc(100vh - 16px);
+        border-radius: 13px;
+    }
+
+    .roll20-handout-header {
+        align-items: flex-start;
+        gap: 8px;
+        padding: 11px 12px;
+    }
+
+    .roll20-handout-actions {
+        gap: 7px;
+    }
+
+    .roll20-handout-zoom button {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 7px;
+    }
+
+    .roll20-handout-zoom button:nth-child(2) {
+        min-width: 54px;
+    }
+
+    .roll20-handout-close {
+        width: 36px;
+        height: 36px;
+    }
+
+    .roll20-handout-header .eyebrow {
+        font-size: 0.58rem;
+    }
+
+    .roll20-handout-stage img {
+        max-height: calc(100vh - 118px);
+    }
+}
+
 .reset-danger-message {
     color: var(--danger);
     font-weight: 750;
@@ -2451,7 +2729,7 @@ input[type="checkbox"] {
 .portrait-frame-select {
     grid-column: 2 / -1;
     min-height: 32px;
-    padding: 4px 7px;
+    padding: 4px 28px 4px 7px;
 }
 .portrait-adjustments output {
     min-width: 3.2rem;

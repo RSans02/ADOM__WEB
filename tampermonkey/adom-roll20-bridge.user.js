@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.6.2
+// @version      0.7.3
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -25,6 +25,8 @@
 (() => {
     "use strict";
 
+    const BRIDGE_VERSION = "0.7.3";
+
     /*
      * ============================================================
      * PROTOCOLO
@@ -37,13 +39,15 @@
         CHANNELS: Object.freeze({
             REQUEST: "adom-sheet:bridge-request",
             RESPONSE: "adom-sheet:bridge-response",
-            CHAT: "adom-sheet:chat-state"
+            CHAT: "adom-sheet:chat-state",
+            HANDOUT: "adom-sheet:handout-state"
         }),
 
         EVENTS: Object.freeze({
             PAGE_REQUEST: "adom-sheet:bridge-request",
             PAGE_RESPONSE: "adom-sheet:bridge-response",
-            PAGE_CHAT_UPDATE: "adom-sheet:chat-update"
+            PAGE_CHAT_UPDATE: "adom-sheet:chat-update",
+            PAGE_HANDOUT_UPDATE: "adom-sheet:handout-update"
         }),
 
         MESSAGE_TYPES: Object.freeze({
@@ -109,9 +113,9 @@
             "[ADOM Bridge] Ejecutándose en la ficha externa."
         );
 
-        document.documentElement.dataset.adomBridgeVersion = "0.6.2";
+        document.documentElement.dataset.adomBridgeVersion = BRIDGE_VERSION;
         window.dispatchEvent(new CustomEvent("adom-sheet:bridge-installed", {
-            detail: { version: "0.6.2" }
+            detail: { version: BRIDGE_VERSION }
         }));
 
         window.addEventListener(
@@ -129,8 +133,17 @@
             handleChatStateChange
         );
 
+        GM_addValueChangeListener(
+            PROTOCOL.CHANNELS.HANDOUT,
+            handleHandoutStateChange
+        );
+
         const currentChat = GM_getValue(PROTOCOL.CHANNELS.CHAT, null);
         if (currentChat) publishChatToExternalPage(currentChat);
+
+        const currentHandout = GM_getValue(PROTOCOL.CHANNELS.HANDOUT, null);
+        if (currentHandout) publishHandoutToExternalPage(currentHandout);
+
     }
 
     function handleExternalPageRequest(event) {
@@ -196,6 +209,17 @@
         }));
     }
 
+    function handleHandoutStateChange(key, oldValue, newValue, remote) {
+        if (!remote || !newValue) return;
+        publishHandoutToExternalPage(newValue);
+    }
+
+    function publishHandoutToExternalPage(handoutState) {
+        window.dispatchEvent(new CustomEvent(PROTOCOL.EVENTS.PAGE_HANDOUT_UPDATE, {
+            detail: handoutState
+        }));
+    }
+
     /*
      * ============================================================
      * PUENTE DE ROLL20
@@ -228,6 +252,7 @@
         }
 
         initializeRoll20ChatMirror();
+        initializeRoll20HandoutMirror();
     }
 
     function initializeRoll20ChatMirror() {
@@ -243,6 +268,259 @@
         const observer = new MutationObserver(schedule);
         observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
         schedule();
+    }
+
+    function initializeRoll20HandoutMirror() {
+        let updateTimer = null;
+        let lastSignature = "";
+        let contextHandout = null;
+        let forcedHandout = null;
+        let forcedHandoutUntil = 0;
+        let lastShowActivationAt = 0;
+
+        const publish = () => {
+            const detectedHandout = readVisibleRoll20Handout();
+            const handout = detectedHandout
+                || (Date.now() < forcedHandoutUntil ? forcedHandout : null);
+            const signature = handout
+                ? `open|${handout.title}|${handout.imageUrl}`
+                : "closed";
+            if (signature === lastSignature) return;
+            lastSignature = signature;
+
+            GM_setValue(PROTOCOL.CHANNELS.HANDOUT, {
+                open: Boolean(handout),
+                title: handout?.title || "",
+                imageUrl: handout?.imageUrl || "",
+                createdAt: Date.now()
+            });
+        };
+
+        const forcePublish = handout => {
+            if (!handout) return;
+            forcedHandout = handout;
+            forcedHandoutUntil = Date.now() + 30_000;
+            lastSignature = "";
+            publish();
+        };
+
+        const schedule = () => {
+            if (updateTimer !== null) return;
+            updateTimer = window.setTimeout(() => {
+                updateTimer = null;
+                publish();
+            }, 100);
+        };
+
+        const observer = new MutationObserver(schedule);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "style", "src", "href"],
+            childList: true,
+            subtree: true
+        });
+
+        document.addEventListener("contextmenu", event => {
+            if (!(event.target instanceof Element)) return;
+            const journalItem = event.target.closest([
+                ".journalitem.handout",
+                ".journalitem[data-itemid]",
+                "[data-item-id]",
+                "[data-objid]",
+                "[role='listitem']"
+            ].join(","));
+            const detected = journalItem ? readJournalHandout(journalItem) : null;
+            if (detected) contextHandout = detected;
+        }, true);
+
+        const handleShowControlActivation = event => {
+            if (!(event.target instanceof Element)) return;
+            const control = event.target.closest("button, a, li, [role='button'], [data-action-type]");
+            if (!control || !isShowToPlayersControl(control)) return;
+
+            const now = Date.now();
+            if (now - lastShowActivationAt < 250) return;
+            lastShowActivationAt = now;
+
+            const selectedHandout = readVisibleRoll20Handout({ includeGmViewer: true })
+                || contextHandout
+                || readSelectedJournalHandout();
+            forcePublish(selectedHandout);
+
+            window.setTimeout(() => {
+                const handout = readVisibleRoll20Handout({ includeGmViewer: true })
+                    || contextHandout
+                    || readSelectedJournalHandout();
+                forcePublish(handout);
+            }, 80);
+        };
+
+        document.addEventListener("pointerdown", handleShowControlActivation, true);
+        document.addEventListener("mousedown", handleShowControlActivation, true);
+        document.addEventListener("click", handleShowControlActivation, true);
+        schedule();
+    }
+
+    function readVisibleRoll20Handout(options = {}) {
+        const roots = Array.from(document.querySelectorAll([
+            ".handoutviewer",
+            "#handout-ui-layer [role='dialog']",
+            "#handout-ui-layer .dialog",
+            "#handout-ui-layer > div",
+            ".ui-dialog",
+            "[role='dialog']",
+            "[aria-modal='true']"
+        ].join(","))).filter(isVisible).reverse();
+
+        for (const root of roots) {
+            const wrapper = root.closest(".ui-dialog, [role='dialog']") || root;
+            if (!options.includeGmViewer && hasShowToPlayersControl(wrapper)) continue;
+
+            const image = findHandoutImage(root);
+            const anchor = image?.closest("a[href]") || root.querySelector(".avatar a[href]");
+            const rawUrl = anchor?.href || image?.currentSrc || image?.src || readBackgroundImage(root);
+            const imageUrl = normalizeHandoutImageUrl(rawUrl);
+            if (!imageUrl) continue;
+
+            const explicitlyHandout = root.matches(".handoutviewer")
+                || Boolean(root.querySelector(".handoutviewer"))
+                || Boolean(root.closest("#handout-ui-layer"));
+            const rectangle = image?.getBoundingClientRect();
+            const largeImage = Boolean(image) && Math.max(
+                (rectangle?.width || 0) * (rectangle?.height || 0),
+                (image.naturalWidth || 0) * (image.naturalHeight || 0)
+            ) >= 20_000;
+            if (!explicitlyHandout && !largeImage) continue;
+
+            const title = extractRoll20HandoutTitle(wrapper, image);
+
+            return { title, imageUrl };
+        }
+
+        return null;
+    }
+
+    function extractRoll20HandoutTitle(wrapper, image) {
+        const labelledById = String(wrapper.getAttribute("aria-labelledby") || "").trim();
+        const labelledTitle = labelledById ? document.getElementById(labelledById) : null;
+        const titleNode = labelledTitle
+            || wrapper.querySelector(".ui-dialog-title")
+            || wrapper.querySelector("[data-testid*='title' i], [class*='handout-title' i], h1, h2");
+
+        if (!titleNode) {
+            return String(image?.alt || "Imagen de Roll20").trim().slice(0, 160) || "Imagen de Roll20";
+        }
+
+        const cleanTitleNode = titleNode.cloneNode(true);
+        cleanTitleNode.querySelectorAll([
+            "button",
+            "a",
+            "input",
+            "select",
+            "[role='button']",
+            "[aria-label*='zoom' i]",
+            "[class*='zoom' i]",
+            "[class*='control' i]",
+            "[class*='action' i]"
+        ].join(",")).forEach(control => control.remove());
+
+        const title = String(cleanTitleNode.textContent || "")
+            .replace(/(?:show to players|mostrar a los jugadores|edit|editar)/gi, " ")
+            .replace(/\b\d{1,3}%\b/g, " ")
+            .replace(/\s+/g, " ")
+            .trim()
+            .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N})\]}]+$/gu, "")
+            .trim()
+            .slice(0, 160);
+
+        return title || String(image?.alt || "Imagen de Roll20").trim().slice(0, 160) || "Imagen de Roll20";
+    }
+
+    function hasShowToPlayersControl(root) {
+        return Array.from(root.querySelectorAll("button, a, li, [role='button'], [data-action-type]")).some(
+            isShowToPlayersControl
+        );
+    }
+
+    function isShowToPlayersControl(control) {
+        const action = String(control.dataset?.actionType || "").toLowerCase();
+        const label = String(control.textContent || control.getAttribute?.("aria-label") || "").trim();
+        return action === "showtoplayers"
+            || /(?:show to players|mostrar a los jugadores)/i.test(label);
+    }
+
+    function findHandoutImage(root) {
+        const preferred = root.querySelector(".handoutviewer .avatar img, .avatar img");
+        if (preferred) return preferred;
+
+        return Array.from(root.querySelectorAll("img"))
+            .filter(image => normalizeHandoutImageUrl(image.currentSrc || image.src))
+            .sort((left, right) => imageDisplayArea(right) - imageDisplayArea(left))[0] || null;
+    }
+
+    function imageDisplayArea(image) {
+        const rectangle = image.getBoundingClientRect();
+        return Math.max(
+            rectangle.width * rectangle.height,
+            (image.naturalWidth || 0) * (image.naturalHeight || 0)
+        );
+    }
+
+    function readJournalHandout(journalItem) {
+        const image = journalItem.querySelector("img");
+        const rawUrl = String(image?.currentSrc || image?.src || "")
+            .replace(/\/(?:thumb|med)\./i, "/max.");
+        const imageUrl = normalizeHandoutImageUrl(rawUrl);
+        if (!imageUrl) return null;
+
+        const title = String(
+            journalItem.querySelector(".namecontainer, .name, [class*='name' i]")?.textContent
+            || image?.alt
+            || "Imagen de Roll20"
+        ).replace(/\s+/g, " ").trim().slice(0, 160) || "Imagen de Roll20";
+
+        return { title, imageUrl };
+    }
+
+    function readSelectedJournalHandout() {
+        const selectors = [
+            ".journalitem.handout.selected",
+            ".journalitem.handout.active",
+            ".journalitem.handout:hover",
+            ".journalitem.selected",
+            ".journalitem.active",
+            "[data-itemid].selected",
+            "[data-item-id].selected",
+            "[aria-selected='true']"
+        ];
+
+        for (const selector of selectors) {
+            const item = document.querySelector(selector);
+            const handout = item ? readJournalHandout(item) : null;
+            if (handout) return handout;
+        }
+
+        return null;
+    }
+
+    function readBackgroundImage(root) {
+        const candidate = root.querySelector(".avatar-placeholder, [style*='background-image']");
+        if (!candidate) return "";
+        const value = window.getComputedStyle(candidate).backgroundImage;
+        const match = /^url\(["']?(.*?)["']?\)$/.exec(value);
+        return match?.[1] || "";
+    }
+
+    function normalizeHandoutImageUrl(value) {
+        const rawUrl = String(value || "").trim();
+        if (!rawUrl || rawUrl.startsWith("data:") || rawUrl.startsWith("blob:")) return "";
+        try {
+            const url = new URL(rawUrl, window.location.href);
+            if (!/^https?:$/.test(url.protocol)) return "";
+            return url.href;
+        } catch {
+            return "";
+        }
     }
 
     function readRoll20ChatMessages() {
@@ -438,7 +716,7 @@
                 return createSuccessResponse({
                     requestId: message.id,
                     message: "Conexión con Roll20 verificada.",
-                    data: { connected: true }
+                    data: { connected: true, bridgeVersion: BRIDGE_VERSION }
                 });
 
             case PROTOCOL.MESSAGE_TYPES.CHAT_COMMAND:
@@ -892,7 +1170,8 @@
             metadata: {
                 source: "ROLL20_BRIDGE",
                 createdAt: Date.now(),
-                protocolVersion: PROTOCOL.VERSION
+                protocolVersion: PROTOCOL.VERSION,
+                bridgeVersion: BRIDGE_VERSION
             }
         };
     }
@@ -914,7 +1193,8 @@
             metadata: {
                 source: "ROLL20_BRIDGE",
                 createdAt: Date.now(),
-                protocolVersion: PROTOCOL.VERSION
+                protocolVersion: PROTOCOL.VERSION,
+                bridgeVersion: BRIDGE_VERSION
             }
         };
     }

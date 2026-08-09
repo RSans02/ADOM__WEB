@@ -2,12 +2,13 @@
     "use strict";
 
     const ADOM = global.ADOM = global.ADOM || {};
-    const LATEST_BRIDGE_VERSION = "0.6.2";
+    const LATEST_BRIDGE_VERSION = "0.7.3";
 
     const EVENTS = Object.freeze({
         REQUEST: "adom-sheet:bridge-request",
         RESPONSE: "adom-sheet:bridge-response",
-        CHAT_UPDATE: "adom-sheet:chat-update"
+        CHAT_UPDATE: "adom-sheet:chat-update",
+        HANDOUT_UPDATE: "adom-sheet:handout-update"
     });
 
     const MESSAGE_TYPES = Object.freeze({
@@ -31,8 +32,11 @@
             this.pending = new Map();
             this.installedBridgeVersion = "";
             this.updateRequired = false;
+            this.loadedRoll20BridgeVersion = "";
+            this.roll20ReloadRequired = false;
             global.addEventListener(EVENTS.RESPONSE, event => this.handleResponse(event));
             global.addEventListener(EVENTS.CHAT_UPDATE, event => this.handleChatUpdate(event));
+            global.addEventListener(EVENTS.HANDOUT_UPDATE, event => this.handleHandoutUpdate(event));
             global.addEventListener("adom-sheet:bridge-installed", event => this.handleBridgeInstalled(event.detail));
             global.setTimeout(() => this.handleBridgeInstalled({
                 version: document.documentElement.dataset.adomBridgeVersion || ""
@@ -53,6 +57,17 @@
                     state: "update-required",
                     message: `Hay una actualización del puente disponible (${LATEST_BRIDGE_VERSION}).`,
                     installedVersion: this.installedBridgeVersion,
+                    latestVersion: LATEST_BRIDGE_VERSION
+                }
+            }));
+        }
+
+        dispatchRoll20ReloadRequiredStatus() {
+            this.dispatchEvent(new CustomEvent("status", {
+                detail: {
+                    state: "roll20-reload-required",
+                    message: "El puente ya está actualizado, pero la pestaña de Roll20 sigue usando la versión anterior. Abre Roll20 y pulsa F5.",
+                    loadedVersion: this.loadedRoll20BridgeVersion,
                     latestVersion: LATEST_BRIDGE_VERSION
                 }
             }));
@@ -133,12 +148,19 @@
             global.clearTimeout(pending.timeoutId);
             this.pending.delete(response.requestId);
 
+            this.loadedRoll20BridgeVersion = String(
+                response.metadata?.bridgeVersion || response.data?.bridgeVersion || ""
+            ).trim();
+            this.roll20ReloadRequired = !this.loadedRoll20BridgeVersion
+                || compareVersions(this.loadedRoll20BridgeVersion, LATEST_BRIDGE_VERSION) < 0;
+
             if (response.success) {
                 const speaker = response.data?.speaker;
                 if (speaker?.requested && !speaker.matched) {
                     this.dispatchEvent(new CustomEvent("speaker-missing", { detail: speaker }));
                 }
                 if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+                else if (this.roll20ReloadRequired) this.dispatchRoll20ReloadRequiredStatus();
                 else this.dispatchEvent(new CustomEvent("status", {
                     detail: { state: "connected", message: response.message || "Comando enviado al chat de Roll20." }
                 }));
@@ -163,10 +185,25 @@
             if (!Array.isArray(messages)) return;
             this.dispatchEvent(new CustomEvent("chat", { detail: { messages } }));
             if (this.updateRequired) this.dispatchUpdateRequiredStatus();
+            else if (this.roll20ReloadRequired) this.dispatchRoll20ReloadRequiredStatus();
             else this.dispatchEvent(new CustomEvent("status", {
                 detail: { state: "connected", message: "Chat sincronizado con Roll20." }
             }));
         }
+
+        handleHandoutUpdate(event) {
+            const detail = event.detail;
+            if (!detail || typeof detail !== "object") return;
+            this.dispatchEvent(new CustomEvent("handout", {
+                detail: {
+                    open: Boolean(detail.open),
+                    title: String(detail.title || "Imagen de Roll20"),
+                    imageUrl: String(detail.imageUrl || ""),
+                    createdAt: Number(detail.createdAt) || 0
+                }
+            }));
+        }
+
     }
 
     function compareVersions(left, right) {

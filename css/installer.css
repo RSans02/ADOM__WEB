@@ -145,8 +145,31 @@ h1 {
 
 .setup-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: stretch;
     gap: 20px;
+}
+
+#extensionStep {
+    min-height: 0;
+    align-self: stretch;
+}
+#bridgeStep,
+#roll20Step {
+    align-self: stretch;
+}
+
+.setup-secondary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 20px;
+}
+
+.setup-secondary > .installer-tools {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: 0;
 }
 
 .setup-card {
@@ -231,15 +254,44 @@ h1 {
 }
 
 @media (min-width: 901px) {
+    #bridgeStep,
+    #roll20Step {
+        min-height: 0;
+        padding: 24px;
+    }
+
+    #bridgeStep .step-heading,
+    #roll20Step .step-heading {
+        margin-bottom: 20px;
+    }
+
     .step-description {
         min-height: 70px;
+    }
+
+    #bridgeStep .step-description,
+    #roll20Step .step-description {
+        min-height: 0;
+    }
+
+    #extensionStep .step-description {
+        min-height: 0;
+        margin-bottom: 12px;
+    }
+
+    .setup-secondary > .installer-tools {
+        padding-block: 20px;
     }
 
     .setup-preaction {
         display: flex;
         align-items: flex-end;
-        min-height: 64px;
-        margin-bottom: 20px;
+        min-height: 0;
+        margin-bottom: 12px;
+    }
+
+    .setup-preaction[aria-hidden="true"] {
+        display: none;
     }
 
     .setup-preaction .browser-detection {
@@ -250,6 +302,11 @@ h1 {
     .setup-card > .action-button.primary {
         margin-top: 0;
         min-height: 68px;
+    }
+
+    #bridgeStep > .action-button.primary,
+    #roll20Step > .action-button.primary {
+        min-height: 58px;
     }
 }
 
@@ -458,7 +515,12 @@ h1 {
 .installer-footer a { color: var(--accent-strong); font-weight: 800; }
 
 @media (max-width: 900px) {
-    .setup-grid { grid-template-columns: 1fr; }
+    .setup-grid {
+        grid-template-columns: 1fr;
+    }
+    .setup-secondary {
+        grid-template-columns: 1fr;
+    }
     .setup-card {
         min-height: 0;
         padding: 24px;

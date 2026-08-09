@@ -66,6 +66,9 @@
             this.skillDropIndex = null;
             this.libraryFolderId = "all";
             this.lastSpeakerWarning = { name: "", at: 0 };
+            this.activeRoll20HandoutId = "";
+            this.dismissedRoll20HandoutId = this.readDismissedRoll20HandoutId();
+            this.roll20HandoutView = { scale: 1, x: 0, y: 0, pointerId: null, startX: 0, startY: 0 };
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -79,6 +82,7 @@
             this.store.addEventListener("save-state", event => this.renderSaveState(event.detail.state));
             this.bridge.addEventListener("status", event => this.renderBridgeStatus(event.detail));
             this.bridge.addEventListener("chat", event => this.renderRoll20Chat(event.detail.messages));
+            this.bridge.addEventListener("handout", event => this.renderRoll20Handout(event.detail));
             this.bridge.addEventListener("speaker-missing", event => this.showMissingRoll20Speaker(event.detail));
         }
 
@@ -91,7 +95,7 @@
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
                 "bondsTitle", "bondsNote", "bondsPanel", "checksPanel", "experienceTotal", "experienceBreakdownTooltip", "adjustedExperienceRow", "adjustedExperience", "adjustedExperienceBreakdownTooltip",
                 "tierLabel", "tierValue", "humanColorInput", "humanBackgroundInput", "ecstasyColorInput", "ecstasyBackgroundInput", "resetAppearanceButton", "manualCommand", "resetManualCommandButton", "sendCommandButton", "connectionStatus", "roll20SetupLink",
-                "bridgeMessage", "roll20Chat", "roll20ChatEmpty", "formHelp", "toastRegion"
+                "bridgeMessage", "roll20Chat", "roll20ChatEmpty", "roll20HandoutDialog", "roll20HandoutTitle", "roll20HandoutStage", "roll20HandoutImage", "roll20HandoutZoomOut", "roll20HandoutZoomReset", "roll20HandoutZoomIn", "closeRoll20HandoutButton", "formHelp", "toastRegion"
             ];
             return Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
         }
@@ -119,6 +123,26 @@
             this.elements.closeCharacterLibraryButton.addEventListener("click", () => this.elements.characterLibraryDialog.close());
             this.elements.characterLibraryDialog.addEventListener("click", event => {
                 if (event.target === this.elements.characterLibraryDialog) this.elements.characterLibraryDialog.close();
+            });
+            this.elements.closeRoll20HandoutButton.addEventListener("click", () => this.closeRoll20Handout());
+            this.elements.roll20HandoutZoomOut.addEventListener("click", () => this.setRoll20HandoutZoom(this.roll20HandoutView.scale - 0.25));
+            this.elements.roll20HandoutZoomIn.addEventListener("click", () => this.setRoll20HandoutZoom(this.roll20HandoutView.scale + 0.25));
+            this.elements.roll20HandoutZoomReset.addEventListener("click", () => this.resetRoll20HandoutView());
+            this.elements.roll20HandoutStage.addEventListener("dblclick", () => this.resetRoll20HandoutView());
+            this.elements.roll20HandoutStage.addEventListener("wheel", event => {
+                event.preventDefault();
+                this.setRoll20HandoutZoom(this.roll20HandoutView.scale + (event.deltaY < 0 ? 0.25 : -0.25));
+            }, { passive: false });
+            this.elements.roll20HandoutStage.addEventListener("pointerdown", event => this.startRoll20HandoutDrag(event));
+            this.elements.roll20HandoutStage.addEventListener("pointermove", event => this.moveRoll20HandoutDrag(event));
+            this.elements.roll20HandoutStage.addEventListener("pointerup", event => this.endRoll20HandoutDrag(event));
+            this.elements.roll20HandoutStage.addEventListener("pointercancel", event => this.endRoll20HandoutDrag(event));
+            this.elements.roll20HandoutDialog.addEventListener("click", event => {
+                if (event.target === this.elements.roll20HandoutDialog) this.closeRoll20Handout();
+            });
+            this.elements.roll20HandoutDialog.addEventListener("cancel", event => {
+                event.preventDefault();
+                this.closeRoll20Handout();
             });
             this.elements.libraryCampaignSelector.addEventListener("change", event => {
                 this.libraryFolderId = "all";
@@ -1083,7 +1107,7 @@
             this.elements.healthPanel.innerHTML = `
                 <div class="derived-row"><span>Umbral de herida</span><strong class="derived-value" data-output="woundThreshold">${derived.woundThreshold}</strong></div>
                 <div class="derived-row"><span>Resistencia total</span><strong class="derived-value" data-output="totalResistance">${derived.totalResistance}</strong></div>
-                <div class="health-current-row">
+                <div class="health-current-row health-resistance-row">
                     <label for="currentResistanceInput">Resistencia actual</label>
                     <input id="currentResistanceInput" type="number" min="0" step="1" value="${form.health.currentResistance}" data-action="current-resistance">
                 </div>
@@ -1106,11 +1130,26 @@
                         <button class="roll-button" type="button" title="Tirar 3d10 + ${derived.initiative}" aria-label="Tirar iniciativa" data-action="roll-initiative">${diceIcon()}</button>
                     </span>
                 </div>
-                <div class="derived-row"><span>Daño a distancia</span><strong class="derived-value" data-output="rangedDamage">${derived.rangedDamage}</strong></div>
-                <div class="derived-row"><span>Daño cuerpo a cuerpo</span><strong class="derived-value" data-output="meleeDamage">${derived.meleeDamage}</strong></div>
-                <div class="health-current-row">
+                <div class="derived-row">
+                    <span>Daño a distancia</span>
+                    <span class="derived-roll-actions">
+                        <strong class="derived-value" data-output="rangedDamage">${derived.rangedDamage}</strong>
+                        <span class="derived-roll-placeholder" aria-hidden="true"></span>
+                    </span>
+                </div>
+                <div class="derived-row">
+                    <span>Daño cuerpo a cuerpo</span>
+                    <span class="derived-roll-actions">
+                        <strong class="derived-value" data-output="meleeDamage">${derived.meleeDamage}</strong>
+                        <span class="derived-roll-placeholder" aria-hidden="true"></span>
+                    </span>
+                </div>
+                <div class="health-current-row combat-rd-row">
                     <label for="rdInput">RD</label>
-                    <input id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
+                    <span class="derived-roll-actions">
+                        <input class="combat-rd-input" id="rdInput" type="number" min="0" step="1" value="${form.rd}" data-action="rd">
+                        <span class="derived-roll-placeholder" aria-hidden="true"></span>
+                    </span>
                 </div>
                 <div class="weapon-table-header"><span>Arma / ataque</span><span class="weapon-damage-heading">Daño <span class="damage-formula-help" tabindex="0" aria-label="Ayuda sobre los dados de daño">?<span class="damage-formula-tooltip" role="tooltip"><span><b>m</b>Dado menor</span><span><b>c</b>Dado central</span><span><b>M</b>Dado mayor</span></span></span></span><span>Tipo</span><span></span><span></span></div>
                 ${weapons.map((weapon, index) => `
@@ -1131,11 +1170,20 @@
 
         renderDistortion(distortion, derived) {
             this.elements.distortionPanel.innerHTML = `
-                <div class="health-current-row">
+                <div class="health-current-row distortion-level-row">
                     <label for="distortionLevelInput">Nivel</label>
-                    <input id="distortionLevelInput" type="number" min="0" step="1" value="${distortion.level}" data-action="distortion-level">
+                    <span class="derived-roll-actions">
+                        <input class="distortion-level-input" id="distortionLevelInput" type="number" min="0" step="1" value="${distortion.level}" data-action="distortion-level">
+                        <span class="derived-roll-placeholder" aria-hidden="true"></span>
+                    </span>
                 </div>
-                <div class="derived-row"><span>Salida de éxtasis</span><strong class="derived-value" data-output="ecstasyExit">${derived.ecstasyExit}</strong></div>
+                <div class="derived-row">
+                    <span>Salida de éxtasis</span>
+                    <span class="derived-roll-actions">
+                        <strong class="derived-value" data-output="ecstasyExit">${derived.ecstasyExit}</strong>
+                        <span class="derived-roll-placeholder" aria-hidden="true"></span>
+                    </span>
+                </div>
                 <p class="distortion-caption">Éxtasis</p>
                 <div class="distortion-grid">
                     ${distortion.ecstasyTrack.map((checked, index) => `
@@ -1742,6 +1790,8 @@
                 ? "connected"
                 : detail.state === "error"
                     ? "error"
+                    : detail.state === "roll20-reload-required"
+                        ? "reload"
                     : detail.state === "update-required"
                         ? "update"
                         : "unknown";
@@ -1753,15 +1803,137 @@
                     ? "Sin respuesta"
                     : state === "update"
                         ? "Actualización disponible"
+                        : state === "reload"
+                            ? "Recarga Roll20"
                         : "Enviando…";
             this.elements.roll20SetupLink.classList.toggle("is-attention", state === "error");
             this.elements.roll20SetupLink.classList.toggle("is-update", state === "update");
+            this.elements.roll20SetupLink.classList.toggle("is-reload", state === "reload");
             this.elements.roll20SetupLink.textContent = state === "error"
                 ? "Instalar o reparar"
                 : state === "update"
                     ? "Actualizar puente"
+                    : state === "reload"
+                        ? "Ver ayuda"
                     : "Configurar";
             this.elements.bridgeMessage.textContent = detail.message;
+        }
+
+        renderRoll20Handout(detail) {
+            if (!detail?.open) {
+                this.closeRoll20Handout(false);
+                return;
+            }
+
+            let imageUrl = "";
+            try {
+                const parsedUrl = new URL(String(detail.imageUrl || ""), global.location.href);
+                if (/^https?:$/.test(parsedUrl.protocol)) imageUrl = parsedUrl.href;
+            } catch {
+                return;
+            }
+            if (!imageUrl) return;
+
+            const title = String(detail.title || "Imagen de Roll20").trim() || "Imagen de Roll20";
+            const handoutId = `${Number(detail.createdAt) || 0}|${imageUrl}|${title}`;
+            if (handoutId === this.dismissedRoll20HandoutId) return;
+
+            this.activeRoll20HandoutId = handoutId;
+            this.elements.roll20HandoutTitle.textContent = title;
+            this.elements.roll20HandoutImage.alt = title;
+            this.elements.roll20HandoutImage.src = imageUrl;
+            this.resetRoll20HandoutView();
+
+            if (!this.elements.roll20HandoutDialog.open) {
+                this.elements.roll20HandoutDialog.showModal();
+            }
+            this.elements.closeRoll20HandoutButton.focus({ preventScroll: true });
+        }
+
+        closeRoll20Handout(rememberDismissal = true) {
+            if (rememberDismissal && this.activeRoll20HandoutId) {
+                this.dismissedRoll20HandoutId = this.activeRoll20HandoutId;
+                try {
+                    global.sessionStorage.setItem("adom-dismissed-roll20-handout", this.activeRoll20HandoutId);
+                } catch {
+                    // La ficha sigue funcionando aunque el navegador bloquee sessionStorage.
+                }
+            }
+            if (this.elements.roll20HandoutDialog.open) {
+                this.elements.roll20HandoutDialog.close();
+            }
+            this.elements.roll20HandoutImage.removeAttribute("src");
+            this.activeRoll20HandoutId = "";
+            this.resetRoll20HandoutView();
+        }
+
+        resetRoll20HandoutView() {
+            Object.assign(this.roll20HandoutView, { scale: 1, x: 0, y: 0, pointerId: null });
+            this.elements.roll20HandoutStage?.classList.remove("is-dragging");
+            this.updateRoll20HandoutTransform();
+        }
+
+        setRoll20HandoutZoom(value) {
+            this.roll20HandoutView.scale = Math.min(4, Math.max(1, Math.round(value * 4) / 4));
+            this.clampRoll20HandoutPosition();
+            this.updateRoll20HandoutTransform();
+        }
+
+        startRoll20HandoutDrag(event) {
+            if (!event.isPrimary || event.button !== 0) return;
+            event.preventDefault();
+            const view = this.roll20HandoutView;
+            view.pointerId = event.pointerId;
+            view.startX = event.clientX - view.x;
+            view.startY = event.clientY - view.y;
+            this.elements.roll20HandoutStage.setPointerCapture(event.pointerId);
+            this.elements.roll20HandoutStage.classList.add("is-dragging");
+        }
+
+        moveRoll20HandoutDrag(event) {
+            const view = this.roll20HandoutView;
+            if (event.pointerId !== view.pointerId) return;
+            view.x = event.clientX - view.startX;
+            view.y = event.clientY - view.startY;
+            this.clampRoll20HandoutPosition();
+            this.updateRoll20HandoutTransform();
+        }
+
+        endRoll20HandoutDrag(event) {
+            if (event.pointerId !== this.roll20HandoutView.pointerId) return;
+            this.roll20HandoutView.pointerId = null;
+            this.elements.roll20HandoutStage.classList.remove("is-dragging");
+            if (this.elements.roll20HandoutStage.hasPointerCapture(event.pointerId)) {
+                this.elements.roll20HandoutStage.releasePointerCapture(event.pointerId);
+            }
+        }
+
+        clampRoll20HandoutPosition() {
+            const view = this.roll20HandoutView;
+            const stage = this.elements.roll20HandoutStage;
+            const image = this.elements.roll20HandoutImage;
+            const margin = 32;
+            const maxX = Math.max(margin, ((image.clientWidth * view.scale) - stage.clientWidth) / 2 + margin);
+            const maxY = Math.max(margin, ((image.clientHeight * view.scale) - stage.clientHeight) / 2 + margin);
+            view.x = Math.min(maxX, Math.max(-maxX, view.x));
+            view.y = Math.min(maxY, Math.max(-maxY, view.y));
+        }
+
+        updateRoll20HandoutTransform() {
+            const view = this.roll20HandoutView;
+            if (!this.elements.roll20HandoutImage) return;
+            this.elements.roll20HandoutImage.style.transform = `translate(${view.x}px, ${view.y}px) scale(${view.scale})`;
+            this.elements.roll20HandoutZoomReset.textContent = `${Math.round(view.scale * 100)}%`;
+            this.elements.roll20HandoutZoomOut.disabled = view.scale <= 1;
+            this.elements.roll20HandoutZoomIn.disabled = view.scale >= 4;
+        }
+
+        readDismissedRoll20HandoutId() {
+            try {
+                return global.sessionStorage.getItem("adom-dismissed-roll20-handout") || "";
+            } catch {
+                return "";
+            }
         }
 
         showMissingRoll20Speaker(detail) {

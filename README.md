@@ -24,6 +24,7 @@ La ficha utiliza el protocolo ya validado:
 
 - Evento de petición: `adom-sheet:bridge-request`
 - Evento de respuesta: `adom-sheet:bridge-response`
+- Sincronización de imágenes mostradas por Roll20: `adom-sheet:handout-state`
 - Tipos de mensaje: `PING`, `CHAT_COMMAND` y `DAMAGE_ROLL`
 - Versión del protocolo: `3`
 
@@ -43,6 +44,7 @@ El userscript debe incluir:
 - Guardado automático con `localStorage`.
 - Selector de personajes en la cabecera para crear, alternar y eliminar varias fichas independientes.
 - Organización de personajes por campañas y carpetas, con buscador por nombre y movimiento entre carpetas.
+- Las imágenes que el director muestra a los jugadores en Roll20 aparecen automáticamente sobre la ficha y pueden cerrarse con el botón, el fondo o la tecla `Esc`.
 - Las eliminaciones destructivas exigen escribir manualmente `ELIMINAR` antes de continuar.
 - La opción `Restablecer` elimina todas las campañas, carpetas y personajes y crea una estructura inicial vacía.
 - Si se elimina el último personaje o campaña, la aplicación genera automáticamente un elemento vacío de sustitución.
