@@ -928,7 +928,14 @@ input[type="checkbox"] {
 }
 
 .arcane-row {
-    grid-template-columns: minmax(0, 1fr) 54px 30px;
+    grid-template-columns: minmax(0, 1fr) 54px 30px 30px;
+}
+
+.derived-roll-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
 }
 
 .repeatable-row input,

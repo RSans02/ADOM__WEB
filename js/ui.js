@@ -1099,7 +1099,13 @@
 
         renderCombat(form, weapons, derived) {
             this.elements.combatPanel.innerHTML = `
-                <div class="derived-row"><span>Iniciativa</span><strong class="derived-value" data-output="initiative">${derived.initiative}</strong></div>
+                <div class="derived-row">
+                    <span>Iniciativa</span>
+                    <span class="derived-roll-actions">
+                        <strong class="derived-value" data-output="initiative">${derived.initiative}</strong>
+                        <button class="roll-button" type="button" title="Tirar 3d10 + ${derived.initiative}" aria-label="Tirar iniciativa" data-action="roll-initiative">${diceIcon()}</button>
+                    </span>
+                </div>
                 <div class="derived-row"><span>Daño a distancia</span><strong class="derived-value" data-output="rangedDamage">${derived.rangedDamage}</strong></div>
                 <div class="derived-row"><span>Daño cuerpo a cuerpo</span><strong class="derived-value" data-output="meleeDamage">${derived.meleeDamage}</strong></div>
                 <div class="health-current-row">
@@ -1152,6 +1158,7 @@
                 <div class="arcane-row">
                     <input type="text" value="${escapeHtml(item.name)}" placeholder="${index === 0 ? "Habilidad arcana innata" : "Habilidad arcana aprendida"}" data-action="arcane-name" data-index="${index}">
                     <input type="number" min="0" step="1" value="${item.value}" data-action="arcane-value" data-index="${index}">
+                    <button class="roll-button" type="button" title="Tirar 3d10 + Voluntad + ${item.value}" aria-label="Tirar ${escapeHtml(item.name || "habilidad arcana")}" data-action="roll-arcane" data-index="${index}">${diceIcon()}</button>
                     ${index === 0
                         ? ""
                         : `<button class="icon-button" type="button" title="Eliminar" aria-label="Eliminar habilidad arcana" data-action="remove-arcane" data-index="${index}">×</button>`}
@@ -1412,6 +1419,14 @@
                 this.rollWeapon(index);
                 return;
             }
+            if (action === "roll-initiative") {
+                this.rollInitiative();
+                return;
+            }
+            if (action === "roll-arcane") {
+                this.rollArcane(index);
+                return;
+            }
             if (action === "move-attribute" || action === "move-skill") {
                 const direction = Number(target.dataset.direction);
                 this.store.update(state => {
@@ -1485,6 +1500,27 @@
             const diceExpression = rollOptions.talent ? "{3d10dh1}kh2" : "{3d10dh1}kh1";
             const label = `${skill.label} con ${attribute.code}${rollOptions.talent ? ` · ${rollOptions.talent}` : ""}`;
             await this.sendRollCommand(`/roll ${diceExpression}${signedModifier}`, label);
+        }
+
+        async rollInitiative() {
+            const state = this.store.getState();
+            const initiative = ADOM.Calculations.deriveForm(state, state.activeForm).initiative;
+            const signedModifier = initiative >= 0 ? `+${initiative}` : `${initiative}`;
+            await this.sendRollCommand(`/roll {3d10dh1}kh1${signedModifier}`, "Iniciativa");
+        }
+
+        async rollArcane(index) {
+            const state = this.store.getState();
+            const form = state.ecstasy;
+            const arcaneSkill = form.arcaneSkills?.[index];
+            if (!arcaneSkill) return;
+
+            const will = form.attributes.find(attribute => attribute.key === "will");
+            const modifier = ADOM.Calculations.number(will?.value)
+                + ADOM.Calculations.number(arcaneSkill.value);
+            const signedModifier = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+            const label = `${String(arcaneSkill.name || "Habilidad arcana").trim() || "Habilidad arcana"} · VOL ${ADOM.Calculations.number(will?.value)} + nivel ${ADOM.Calculations.number(arcaneSkill.value)}`;
+            await this.sendRollCommand(`/roll {3d10dh1}kh1${signedModifier}`, label);
         }
 
         chooseSkillRollOptions(skill) {
