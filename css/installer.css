@@ -297,6 +297,26 @@ h1 {
     font-size: 0.74rem !important;
 }
 
+.chromium-note > strong {
+    display: block;
+    margin-bottom: 8px;
+}
+
+.chromium-note ol {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.chromium-note li + li {
+    margin-top: 6px;
+}
+
+.chromium-note > span {
+    display: block;
+    margin-top: 10px;
+    font-weight: 700;
+}
+
 .action-button {
     display: inline-flex;
     align-items: center;

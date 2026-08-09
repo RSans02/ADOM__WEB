@@ -3,7 +3,7 @@
 
     const elements = Object.fromEntries([
         "overallStatus", "overallStatusTitle", "overallStatusText", "extensionStep", "bridgeStep", "roll20Step",
-        "browserName", "tampermonkeyLink", "chromiumNote", "chromiumPermissionLead", "userScriptsPermissionLabel", "bridgeStepTitle", "bridgeStepDescription",
+        "browserName", "tampermonkeyLink", "chromiumNote", "bridgeStepTitle", "bridgeStepDescription",
         "bridgeInstallLink", "bridgeInstalledButton", "bridgeVersion",
         "checkConnectionButton", "connectionResult", "readyPanel", "copyGuideLink", "copyResult"
     ].map(id => [id, document.getElementById(id)]));
@@ -21,10 +21,7 @@
     elements.tampermonkeyLink.href = browser.installUrl;
     elements.tampermonkeyLink.textContent = `Instalar Tampermonkey para ${browser.name}`;
     elements.chromiumNote.hidden = !browser.chromium;
-    elements.chromiumPermissionLead.textContent = browser.name === "Opera"
-        ? "En Opera, abre Administrar extensión y activa"
-        : "Después, abre los detalles de Tampermonkey y activa";
-    elements.userScriptsPermissionLabel.textContent = browser.userScriptsPermissionLabel || "Permitir scripts de usuario";
+    elements.chromiumNote.innerHTML = browser.chromium ? createChromiumInstructions(browser) : "";
 
     global.addEventListener("adom-sheet:bridge-installed", event => {
         bridgeVersion = String(event.detail?.version || document.documentElement.dataset.adomBridgeVersion || "instalado");
@@ -82,6 +79,24 @@
             userScriptsPermissionLabel: "Permitir scripts de usuario",
             installUrl: "https://www.tampermonkey.net/index.php?browser=chrome&locale=es"
         };
+    }
+
+    function createChromiumInstructions(browserInfo) {
+        const permissionLabel = browserInfo.userScriptsPermissionLabel || "Permitir scripts de usuario";
+        const firstStep = browserInfo.name === "Opera"
+            ? "En la esquina superior derecha de Opera, pulsa el icono de la <strong>pieza de puzle</strong> (Extensiones)."
+            : `En la esquina superior derecha de ${browserInfo.name}, pulsa el icono de la <strong>pieza de puzle</strong> (Extensiones).`;
+
+        return `
+            <strong>Después de instalar Tampermonkey:</strong>
+            <ol>
+                <li>${firstStep}</li>
+                <li>Busca <strong>Tampermonkey</strong>, abre su menú y pulsa <strong>Administrar extensión</strong>. Si no aparece, entra primero en <strong>Gestionar extensiones</strong>.</li>
+                <li>Activa el interruptor <strong>${permissionLabel}</strong>.</li>
+                <li>Si ese interruptor no aparece, vuelve a la lista de extensiones, activa <strong>Modo de desarrollador</strong> y repite el paso anterior.</li>
+            </ol>
+            <span>Esta configuración solo se hace una vez.</span>
+        `;
     }
 
     function setStepState(element, complete) {
