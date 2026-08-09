@@ -60,7 +60,6 @@
                 ecstasyTrack: [false, false, false, false, false, false, false, false, false, false]
             },
             settings: {
-                baseDie: "1d20",
                 formColors: {
                     human: "#a64d78",
                     ecstasy: "#3f7f8b"
@@ -382,7 +381,6 @@
                 ecstasyTrack: normalizeBooleanTrack(candidate.distortion?.ecstasyTrack, defaults.distortion.ecstasyTrack, 10)
             },
             settings: {
-                baseDie: String(candidate.settings?.baseDie ?? defaults.settings.baseDie),
                 formColors: {
                     human: normalizeColor(candidate.settings?.formColors?.human, defaults.settings.formColors.human),
                     ecstasy: normalizeColor(candidate.settings?.formColors?.ecstasy, defaults.settings.formColors.ecstasy)

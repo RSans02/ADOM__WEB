@@ -960,7 +960,7 @@
                     </span>
                     <input type="text" value="${escapeHtml(attribute.descriptor)}" aria-label="Descriptor de ${escapeHtml(attribute.code)}" data-action="attribute-descriptor" data-index="${index}">
                     <input class="stat-value" type="number" min="0" step="1" value="${attribute.value}" aria-label="Valor de ${escapeHtml(attribute.code)}" data-action="attribute-value" data-index="${index}">
-                    <button class="roll-button" type="button" title="Lanzar dado base + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">${diceIcon()}</button>
+                    <button class="roll-button" type="button" title="Tirar 3d10 ADOM + ${attribute.value}" aria-label="Tirar ${escapeHtml(attribute.code)}" data-action="roll-stat" data-kind="attribute" data-index="${index}">${diceIcon()}</button>
                 </div>
             `).join("");
             this.attributeDropIndex = null;
@@ -1526,8 +1526,9 @@
             if (kind === "attribute") {
                 const attribute = form.attributes[index];
                 const label = `${attribute.code} ${attribute.descriptor}`.trim();
-                const baseDie = String(state.settings.baseDie || "1d20").trim() || "1d20";
-                await this.sendRollCommand(`/roll ${baseDie}+${ADOM.Calculations.number(attribute.value)}`, label);
+                const modifier = ADOM.Calculations.number(attribute.value);
+                const signedModifier = modifier >= 0 ? `+${modifier}` : `${modifier}`;
+                await this.sendRollCommand(`/roll {3d10dh1}kh1${signedModifier}`, label);
                 return;
             }
 

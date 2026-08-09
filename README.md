@@ -81,7 +81,7 @@ Las habilidades usan:
 {3d10dh1}kh1+<habilidad>+<atributo>
 ```
 
-Los atributos conservan internamente el dado base existente. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa con el nombre del arma, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat y la ficha los ordena como `m`, `c` y `M`. La fórmula del arma solo contiene esos símbolos; después se suma automáticamente el daño a distancia o cuerpo a cuerpo elegido en su selector y se envía al chat `Nombre del arma: Daño -> resultado`.
+Los atributos usan `/roll {3d10dh1}kh1+atributo`: lanzan los tres d10 de ADOM, descartan el mayor y el menor y suman el dado central al valor del atributo. Para el daño, Roll20 ejecuta `/roll {3d10dh1}kh1+habilidad+atributo`: muestra la tirada completa con el nombre del arma, descarta el mayor y el menor para la comprobación y suma el dado central + habilidad + atributo. El userscript recoge los tres dados nuevos del chat y la ficha los ordena como `m`, `c` y `M`. La fórmula del arma solo contiene esos símbolos; después se suma automáticamente el daño a distancia o cuerpo a cuerpo elegido en su selector y se envía al chat `Nombre del arma: Daño -> resultado`.
 
 ## Estructura
 
@@ -120,7 +120,7 @@ No se usan librerías externas, compiladores ni servidor. Los archivos JavaScrip
 - En las tiradas de armas y ataques se elige primero el atributo y después la habilidad.
 - La primera habilidad arcana es siempre la innata y no se puede eliminar.
 - La primera fila de armas o ataques siempre existe y no se puede eliminar.
-- Las tiradas de atributo conservan el dado base interno existente.
+- Las tiradas de atributo usan los 3d10 de ADOM y suman el dado central al valor del atributo.
 
 - Los lazos vacíos no suman experiencia.
 - La ficha admite una imagen de personaje mediante URL pública directa, con encuadre por arrastre y zoom persistente.
