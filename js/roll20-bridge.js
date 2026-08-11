@@ -2,7 +2,7 @@
     "use strict";
 
     const ADOM = global.ADOM = global.ADOM || {};
-    const LATEST_BRIDGE_VERSION = "0.7.6";
+    const LATEST_BRIDGE_VERSION = "0.7.7";
 
     const EVENTS = Object.freeze({
         REQUEST: "adom-sheet:bridge-request",

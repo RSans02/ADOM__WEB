@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.7.6
+// @version      0.7.7
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -26,7 +26,8 @@
 (() => {
     "use strict";
 
-    const BRIDGE_VERSION = "0.7.6";
+    const BRIDGE_VERSION = "0.7.7";
+    const PROCESSED_REQUESTS_STORAGE_KEY = "adom-sheet:processed-request-ids";
 
     /*
      * ============================================================
@@ -646,6 +647,20 @@
 
             return;
         }
+
+        if (navigator.locks?.request) {
+            await navigator.locks.request(`adom-sheet:request:${message.id}`, async () => {
+                if (hasGloballyProcessedRequest(message.id)) return;
+                await processValidatedBridgeMessage(message);
+                rememberGloballyProcessedRequest(message.id);
+            });
+            return;
+        }
+
+        await processValidatedBridgeMessage(message);
+    }
+
+    async function processValidatedBridgeMessage(message) {
 
         if (runtime.processedRequestIds.has(message.id)) {
             return;
@@ -1308,6 +1323,32 @@
             runtime.processedRequestIds.delete(
                 oldestRequestId
             );
+        }
+    }
+
+    function readGloballyProcessedRequests() {
+        try {
+            const parsed = JSON.parse(window.localStorage.getItem(PROCESSED_REQUESTS_STORAGE_KEY) || "[]");
+            const cutoff = Date.now() - CONFIG.REQUEST_MAX_AGE_MS;
+            return Array.isArray(parsed)
+                ? parsed.filter(item => typeof item?.id === "string" && Number(item?.createdAt) >= cutoff)
+                : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function hasGloballyProcessedRequest(requestId) {
+        return readGloballyProcessedRequests().some(item => item.id === requestId);
+    }
+
+    function rememberGloballyProcessedRequest(requestId) {
+        try {
+            const history = readGloballyProcessedRequests();
+            history.push({ id: requestId, createdAt: Date.now() });
+            window.localStorage.setItem(PROCESSED_REQUESTS_STORAGE_KEY, JSON.stringify(history.slice(-100)));
+        } catch {
+            // El Set local sigue evitando duplicados dentro de esta instancia.
         }
     }
 
