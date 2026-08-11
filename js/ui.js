@@ -235,6 +235,7 @@
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
             this.bindTextInput(this.elements.characterInventory, state => state.profile.inventory, (state, value) => { state.profile.inventory = value; });
+            this.bindInventoryResize();
             this.elements.humanColorInput.addEventListener("input", event => this.setFormColor("human", event.target.value));
             this.elements.ecstasyColorInput.addEventListener("input", event => this.setFormColor("ecstasy", event.target.value));
             this.elements.humanBackgroundInput.addEventListener("input", event => this.setFormBackground("human", event.target.value));
@@ -288,6 +289,25 @@
                 this.store.update(state => setter(state, event.target.value), { source: "live-input" });
             });
             element.dataset.getter = getter;
+        }
+
+        bindInventoryResize() {
+            const inventory = this.elements.characterInventory;
+            const saveHeight = () => {
+                if (this.viewerMode) return;
+                const height = Math.round(inventory.getBoundingClientRect().height);
+                const currentHeight = this.store.getState().profile.inventoryHeight;
+                if (!height || Math.abs(height - currentHeight) < 1) return;
+                this.store.update(state => {
+                    state.profile.inventoryHeight = height;
+                }, { source: "live-input" });
+            };
+
+            inventory.addEventListener("pointerup", saveHeight);
+            if (typeof global.ResizeObserver === "function") {
+                this.inventoryResizeObserver = new global.ResizeObserver(saveHeight);
+                this.inventoryResizeObserver.observe(inventory);
+            }
         }
 
         setActiveForm(formKey) {
@@ -685,6 +705,7 @@
             this.syncInput(this.elements.characterConcept, state.profile.concept);
             this.syncInput(this.elements.characterComplication, state.profile.complication);
             this.syncInput(this.elements.characterInventory, state.profile.inventory);
+            this.elements.characterInventory.style.height = `${state.profile.inventoryHeight}px`;
             this.syncInput(this.elements.extraExperience, form.extraExperience);
             this.syncInput(this.elements.humanColorInput, state.settings.formColors.human);
             this.syncInput(this.elements.ecstasyColorInput, state.settings.formColors.ecstasy);

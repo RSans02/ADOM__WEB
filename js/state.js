@@ -38,7 +38,7 @@
         ecstasySkills.find(item => item.key === "culture").value = 6;
 
         return {
-            schemaVersion: 23,
+            schemaVersion: 24,
             activeForm: "human",
             drama: [true, true, true, true, true],
             profile: {
@@ -49,6 +49,7 @@
                 concept: "Solitaria soñadora",
                 complication: "Dispersa",
                 inventory: "",
+                inventoryHeight: 148,
                 temporalAspects: ["", "", "", ""],
                 milestones: [
                     "Es de clase baja, viviendo muy cerca de la cúpula",
@@ -128,6 +129,7 @@
         state.profile.concept = "";
         state.profile.complication = "";
         state.profile.inventory = "";
+        state.profile.inventoryHeight = 148;
         state.profile.temporalAspects.fill("");
         state.profile.milestones.fill("");
         state.distortion.level = 0;
@@ -359,7 +361,7 @@
         }
 
         return {
-            schemaVersion: 23,
+            schemaVersion: 24,
             activeForm,
             drama: normalizeBooleanTrack(
                 candidate.drama,
@@ -376,6 +378,7 @@
                 concept: String(candidate.profile?.concept ?? defaults.profile.concept),
                 complication: String(candidate.profile?.complication ?? defaults.profile.complication),
                 inventory: String(candidate.profile?.inventory ?? defaults.profile.inventory),
+                inventoryHeight: clamp(candidate.profile?.inventoryHeight, 148, 1200, defaults.profile.inventoryHeight),
                 temporalAspects: normalizeStringArray(candidate.profile?.temporalAspects, defaults.profile.temporalAspects),
                 milestones: Array.from({ length: 6 }, (_, index) => String(candidate.profile?.milestones?.[index] ?? defaults.profile.milestones[index] ?? ""))
             },
