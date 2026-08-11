@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.7.5
+// @version      0.7.6
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -20,12 +20,13 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        GM_addValueChangeListener
+// @noframes
 // ==/UserScript==
 
 (() => {
     "use strict";
 
-    const BRIDGE_VERSION = "0.7.5";
+    const BRIDGE_VERSION = "0.7.6";
 
     /*
      * ============================================================
@@ -96,6 +97,7 @@
 
     function initialize() {
         if (isRoll20Page()) {
+            if (window.top !== window.self) return;
             initializeRoll20Bridge();
         } else {
             initializeExternalPageBridge();

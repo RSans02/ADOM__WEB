@@ -69,6 +69,7 @@
             this.activeRoll20HandoutId = "";
             this.dismissedRoll20HandoutId = this.readDismissedRoll20HandoutId();
             this.roll20HandoutView = { scale: 1, x: 0, y: 0, pointerId: null, startX: 0, startY: 0 };
+            this.manualCommandPending = false;
             this.viewerMode = false;
             this.elements = this.collectElements();
             this.bindStaticEvents();
@@ -1789,12 +1790,20 @@
         }
 
         async sendManualCommand() {
+            if (this.manualCommandPending) return;
             const command = this.elements.manualCommand.value.trim();
             if (!command) return;
-            const sent = await this.sendRollCommand(command, command.startsWith("/") ? "Comando" : "Mensaje");
-            if (!sent) return;
-            this.elements.manualCommand.value = "";
-            this.elements.manualCommand.title = "";
+            this.manualCommandPending = true;
+            this.elements.sendCommandButton.disabled = true;
+            try {
+                const sent = await this.sendRollCommand(command, command.startsWith("/") ? "Comando" : "Mensaje");
+                if (!sent) return;
+                this.elements.manualCommand.value = "";
+                this.elements.manualCommand.title = "";
+            } finally {
+                this.manualCommandPending = false;
+                this.elements.sendCommandButton.disabled = this.viewerMode;
+            }
         }
 
         async sendRollCommand(command, label) {
