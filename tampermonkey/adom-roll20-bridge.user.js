@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         ADOM External Sheet - Roll20 Bridge
 // @namespace    https://adom-external-sheet.local/
-// @version      0.7.3
+// @version      0.7.5
 // @description  Bus de mensajes entre la ficha externa ADOM y Roll20.
 // @homepageURL  https://adom-web.vercel.app/
 // @supportURL   https://adom-web.vercel.app/instalar.html
@@ -25,7 +25,7 @@
 (() => {
     "use strict";
 
-    const BRIDGE_VERSION = "0.7.3";
+    const BRIDGE_VERSION = "0.7.5";
 
     /*
      * ============================================================
@@ -140,9 +140,6 @@
 
         const currentChat = GM_getValue(PROTOCOL.CHANNELS.CHAT, null);
         if (currentChat) publishChatToExternalPage(currentChat);
-
-        const currentHandout = GM_getValue(PROTOCOL.CHANNELS.HANDOUT, null);
-        if (currentHandout) publishHandoutToExternalPage(currentHandout);
 
     }
 
@@ -271,54 +268,19 @@
     }
 
     function initializeRoll20HandoutMirror() {
-        let updateTimer = null;
-        let lastSignature = "";
         let contextHandout = null;
-        let forcedHandout = null;
-        let forcedHandoutUntil = 0;
         let lastShowActivationAt = 0;
 
-        const publish = () => {
-            const detectedHandout = readVisibleRoll20Handout();
-            const handout = detectedHandout
-                || (Date.now() < forcedHandoutUntil ? forcedHandout : null);
-            const signature = handout
-                ? `open|${handout.title}|${handout.imageUrl}`
-                : "closed";
-            if (signature === lastSignature) return;
-            lastSignature = signature;
-
+        const publishHandout = handout => {
+            if (!handout) return false;
             GM_setValue(PROTOCOL.CHANNELS.HANDOUT, {
-                open: Boolean(handout),
-                title: handout?.title || "",
-                imageUrl: handout?.imageUrl || "",
+                open: true,
+                title: handout.title || "",
+                imageUrl: handout.imageUrl || "",
                 createdAt: Date.now()
             });
+            return true;
         };
-
-        const forcePublish = handout => {
-            if (!handout) return;
-            forcedHandout = handout;
-            forcedHandoutUntil = Date.now() + 30_000;
-            lastSignature = "";
-            publish();
-        };
-
-        const schedule = () => {
-            if (updateTimer !== null) return;
-            updateTimer = window.setTimeout(() => {
-                updateTimer = null;
-                publish();
-            }, 100);
-        };
-
-        const observer = new MutationObserver(schedule);
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class", "style", "src", "href"],
-            childList: true,
-            subtree: true
-        });
 
         document.addEventListener("contextmenu", event => {
             if (!(event.target instanceof Element)) return;
@@ -345,20 +307,19 @@
             const selectedHandout = readVisibleRoll20Handout({ includeGmViewer: true })
                 || contextHandout
                 || readSelectedJournalHandout();
-            forcePublish(selectedHandout);
+            if (publishHandout(selectedHandout)) return;
 
             window.setTimeout(() => {
                 const handout = readVisibleRoll20Handout({ includeGmViewer: true })
                     || contextHandout
                     || readSelectedJournalHandout();
-                forcePublish(handout);
+                publishHandout(handout);
             }, 80);
         };
 
         document.addEventListener("pointerdown", handleShowControlActivation, true);
         document.addEventListener("mousedown", handleShowControlActivation, true);
         document.addEventListener("click", handleShowControlActivation, true);
-        schedule();
     }
 
     function readVisibleRoll20Handout(options = {}) {
@@ -374,6 +335,7 @@
 
         for (const root of roots) {
             const wrapper = root.closest(".ui-dialog, [role='dialog']") || root;
+            if (isCharacterSheetViewer(wrapper)) continue;
             if (!options.includeGmViewer && hasShowToPlayersControl(wrapper)) continue;
 
             const image = findHandoutImage(root);
@@ -398,6 +360,23 @@
         }
 
         return null;
+    }
+
+    function isCharacterSheetViewer(root) {
+        const characterSheetSelectors = [
+            ".characterdialog",
+            ".charactereditor",
+            ".charsheet",
+            ".sheetform",
+            "[data-testid*='character-sheet' i]",
+            "[aria-label*='character sheet' i]",
+            "[aria-label*='ficha de personaje' i]",
+            "iframe[src*='/character/' i]"
+        ].join(",");
+
+        return root.matches(characterSheetSelectors)
+            || Boolean(root.querySelector(characterSheetSelectors))
+            || Boolean(root.closest(".characterdialog, .charactereditor, [data-testid*='character-sheet' i]"));
     }
 
     function extractRoll20HandoutTitle(wrapper, image) {

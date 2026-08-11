@@ -740,6 +740,18 @@ input[type="checkbox"] {
     cursor: pointer;
 }
 
+.inventory-body {
+    padding: 10px;
+}
+
+.inventory-body textarea {
+    display: block;
+    min-height: 148px;
+    padding: 10px;
+    line-height: 1.45;
+    resize: vertical;
+}
+
 .card-header,
 .summary-header {
     display: flex;

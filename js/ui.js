@@ -89,7 +89,7 @@
         collectElements() {
             const ids = [
                 "appShell", "characterManager", "campaignSelector", "characterSelector", "openCharacterLibraryButton", "characterLibraryDialog", "closeCharacterLibraryButton", "libraryCampaignSelector", "addCampaignButton", "renameCampaignButton", "deleteCampaignButton", "characterSearch", "folderFilter", "addFolderButton", "renameFolderButton", "deleteFolderButton", "characterLibraryList", "characterLibraryCount", "newCharacterButton", "deleteCharacterButton", "humanTab", "ecstasyTab", "viewerBadge", "saveStatus", "optionsMenu", "shareButton", "exportButton", "importInput", "exportCampaignButton", "importCampaignInput", "excelImportInput", "resetButton",
-                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "attributesList", "attributesTotal", "attributesOrderLinkButton",
+                "characterName", "characterImageUrl", "portraitPreviewWrap", "characterPortrait", "characterPortraitPlaceholder", "portraitEditorControls", "portraitAdjustments", "portraitAdjustmentHelp", "characterImageFrame", "characterImageZoom", "characterImageZoomValue", "resetImageTransformButton", "applyImageUrlButton", "clearImageUrlButton", "characterConcept", "characterComplication", "characterInventory", "attributesList", "attributesTotal", "attributesOrderLinkButton",
                 "skillsList", "skillsTotal", "skillsOrderLinkButton", "temporalAspectsNote", "temporalAspectsList",
                 "dramaTrack", "extraExperience", "milestonesNote", "milestonesList", "healthPanel", "combatPanel",
                 "addWeaponButton", "distortionPanel", "arcaneCard", "arcaneSkillsList", "arcaneTotal", "addArcaneSkillButton",
@@ -234,6 +234,7 @@
             });
             this.bindTextInput(this.elements.characterConcept, state => state.profile.concept, (state, value) => { state.profile.concept = value; });
             this.bindTextInput(this.elements.characterComplication, state => state.profile.complication, (state, value) => { state.profile.complication = value; });
+            this.bindTextInput(this.elements.characterInventory, state => state.profile.inventory, (state, value) => { state.profile.inventory = value; });
             this.elements.humanColorInput.addEventListener("input", event => this.setFormColor("human", event.target.value));
             this.elements.ecstasyColorInput.addEventListener("input", event => this.setFormColor("ecstasy", event.target.value));
             this.elements.humanBackgroundInput.addEventListener("input", event => this.setFormBackground("human", event.target.value));
@@ -683,6 +684,7 @@
             this.syncInput(this.elements.characterImageUrl, state.profile.imageUrl);
             this.syncInput(this.elements.characterConcept, state.profile.concept);
             this.syncInput(this.elements.characterComplication, state.profile.complication);
+            this.syncInput(this.elements.characterInventory, state.profile.inventory);
             this.syncInput(this.elements.extraExperience, form.extraExperience);
             this.syncInput(this.elements.humanColorInput, state.settings.formColors.human);
             this.syncInput(this.elements.ecstasyColorInput, state.settings.formColors.ecstasy);
